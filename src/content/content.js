@@ -563,7 +563,8 @@
                         }
                     });
                 }
-            if (el.clientWidth > topWinW * 0.7 && el.clientHeight > topWinH * 0.7) return null;
+            /* commented out because that did not allow large images (bigger than viewport)
+            if (el.clientWidth > topWinW * 0.7 && el.clientHeight > topWinH * 0.7) return null; */
             imgs = { imgSRC_o: el.currentSrc || el.src || el.data || null };
             if (!imgs.imgSRC_o && el.localName === "image") {
                 imgs.imgSRC_o = el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
