@@ -423,27 +423,31 @@ function keepAlive() {
 }
 
 function registerContentScripts() {
-    chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
-    chrome.userScripts.unregister().then(function () {
-        chrome.userScripts.register([
-            {
-                id: "app.js",
-                allFrames: !0,
-                matches: ["*://*/*"],
-                world: "USER_SCRIPT",
-                runAt: "document_start",
-                js: [{ file: "common/app.js" }],
-            },
-            {
-                id: "content.js",
-                allFrames: !0,
-                matches: ["*://*/*"],
-                runAt: "document_idle",
-                world: "USER_SCRIPT",
-                js: [{ file: "content/content.js" }],
-            },
-        ]);
-    });
+    try {
+        chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
+        chrome.userScripts.unregister().then(function () {
+            chrome.userScripts.register([
+                {
+                    id: "app.js",
+                    allFrames: !0,
+                    matches: ["*://*/*"],
+                    world: "USER_SCRIPT",
+                    runAt: "document_start",
+                    js: [{ file: "common/app.js" }],
+                },
+                {
+                    id: "content.js",
+                    allFrames: !0,
+                    matches: ["*://*/*"],
+                    runAt: "document_idle",
+                    world: "USER_SCRIPT",
+                    js: [{ file: "content/content.js" }],
+                },
+            ]);
+        });
+    } catch(error) {
+        chrome.runtime.openOptionsPage();
+    }
 }
 
 chrome.action.setTitle({ title: `${manifest.name} v${manifest.version}` });
