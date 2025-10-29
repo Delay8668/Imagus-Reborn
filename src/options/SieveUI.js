@@ -546,7 +546,12 @@ var sieve_sec,
             var i = sieve_container.childElementCount,
                 list = sieve_container.querySelectorAll("div.selected").length,
                 cn = sieve_container.children;
-            while (i--) if (!list || cn[i].classList.contains("selected")) cn[i].classList.toggle("disabled");
+            while (i--) {
+                if (!list || cn[i].classList.contains("selected")) {
+                    cn[i].classList.toggle("disabled");
+                    cn[i].classList.remove("selected");
+                }
+            }
         },
         remove: function () {
             if (!confirm(_("DELITEMS"))) return;
