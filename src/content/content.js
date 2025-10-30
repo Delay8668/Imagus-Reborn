@@ -1768,7 +1768,7 @@
                             PVI.VID.currentTime += key * (e.shiftKey ? 3 : 1);
                         } else if (key === "Up" || key === "Down") {
                             const delta = key === "Down" ? -0.05 : 0.05;
-                            PVI.VID.volume = Math.min(1, PVI.VID.volume + delta);
+                            PVI.VID.volume = Math.max(0, Math.min(1, PVI.VID.volume + delta));
                         }
                 } else if (key === "-" || key === "+" || key === "=") PVI.resize(key === "-" ? "-" : "+");
                 else if (key === "Tab") {
