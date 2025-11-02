@@ -97,12 +97,54 @@ const Port = {
         }
     },
 
-    send: async function (message) {
-        if (Port.listener) {
-            return chrome.runtime.sendMessage(message, Port.listener);
-        } else {
-            return chrome.runtime.sendMessage(message);
-        }
+    send: function (message) {
+        return new Promise((resolve, reject) => {
+            let settled = false;
+            const callback = (response) => {
+                const lastError = chrome.runtime.lastError;
+                if (lastError && !settled) {
+                    settled = true;
+                    reject(new Error(lastError.message));
+                    return;
+                }
+                if (Port.listener) {
+                    try {
+                        Port.listener(response);
+                    } catch (listenerError) {
+                        console.error(listenerError);
+                    }
+                }
+                if (!settled) {
+                    settled = true;
+                    resolve(response);
+                }
+            };
+
+            try {
+                const maybePromise = chrome.runtime.sendMessage(message, callback);
+                if (maybePromise && typeof maybePromise.then === "function") {
+                    maybePromise.then(
+                        (value) => {
+                            if (!settled) {
+                                settled = true;
+                                resolve(value);
+                            }
+                        },
+                        (error) => {
+                            if (!settled) {
+                                settled = true;
+                                reject(error);
+                            }
+                        }
+                    );
+                }
+            } catch (error) {
+                if (!settled) {
+                    settled = true;
+                    reject(error);
+                }
+            }
+        });
     },
 };
 

@@ -14,24 +14,57 @@
 	"action": {
 	},
 
-	"permissions": [
-		"downloads",
-		"history",
-		"storage",
-		"userScripts"
-	],
+"permissions": [
+        "downloads",
+        "history",
+        "storage",
+        "userScripts" 
+    ],
 	"host_permissions": [
 		"*://*/*"
 	],
 
 	"incognito": "split",
 
-	"background": {
-		"service_worker": "background/service.js"
-	},
+    "background": {
+        "service_worker": "background/service.js",
+        "type": "module"
+    },
 
 	"options_ui": {
 		"page": "options/options.html",
 		"open_in_tab": true
-	}
+	},
+	"content_scripts": [{
+  "matches": ["<all_urls>"],
+  "js": ["main.js"],
+  "run_at": "document_idle"
+}],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "main.js",
+                "app/EventListenerService.js",
+                "app/PopupController.js",
+                "core/ImageResolver.js",
+                "core/Settings.js",
+                "infra/HistoryService.js",
+                "infra/PortService.js",
+                "utils/DOMUtils.js",
+                "utils/SecurityUtils.js",
+                "utils/UrlUtils.js",
+                "utils/KeyUtils.js",
+                "options/options.js",
+                "options/SieveUI.js",
+                "options/options-utils.js",
+                "options/ImprtHandler.js"
+            ],
+            "matches": ["*://*/*"]
+        }
+    ],
+	   "browser_specific_settings": {
+        "gecko": {
+          "id": "swosmi36@outlook.com"
+        }
+      }
 }

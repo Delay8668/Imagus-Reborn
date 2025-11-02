@@ -1,6 +1,8 @@
 .vscode/
 .node_modules/
 .node_modules/**
+/node_modules/
+/node_modules/**
 dist/
 .env
 .DS_Store
@@ -18,6 +20,8 @@ thumbs.db
 *.dll
 .build/
 .build/**
+/build/
+/build/**
 *.md
 package.json
 package-lock.json
