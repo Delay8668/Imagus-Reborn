@@ -5,7 +5,7 @@ import { $, _, color_trans, processLNG } from './options-utils.js';
 import { ImprtHandler } from './ImprtHandler.js';
 import { Port } from '../infra/PortService.js';
 import { shortcut } from '../utils/KeyUtils.js';
-import { buildNodes } from '../utils/DOMUtils.js'; // <-- FIX 1: ADDED IMPORT
+import { buildNodes } from '../utils/DOMUtils.js';
 
 // Private variables
 let sieve_sec, sieve_container, app_name, cfg, readCfg_func;
@@ -17,16 +17,15 @@ let sieve_sec, sieve_container, app_name, cfg, readCfg_func;
  * @param {boolean} exportAsText - Force opening in a new tab.
  */
 function download(data, filename, exportAsText) {
-    const 
-a = document.createElement("a");
+    const a = document.createElement("a");
     if (exportAsText || a.download === void 0 || !URL.createObjectURL) {
+ 
         Port.send({ cmd: "open", url: "data:text/plain;charset=utf-8," + encodeURIComponent(data) });
         return;
     }
     const blobUrl = URL.createObjectURL(new Blob([data], { type: "text/plain" }));
     a.href = blobUrl;
-    a.download = (filename || "").replace(/\s/g, 
-"_");
+    a.download = (filename || "").replace(/\s/g, "_");
     a.dispatchEvent(new MouseEvent("click"));
     setTimeout(() => {
         URL.revokeObjectURL(blobUrl);
@@ -42,7 +41,8 @@ export const SieveUI = {
 
   
   init: function (globalConfig, appName, readCfg) {
-        cfg = globalConfig;
+      
+       cfg = globalConfig;
         app_name = appName;
         readCfg_func = readCfg; // Store readCfg
         this.loaded = true;
@@ -52,8 +52,7 @@ export const SieveUI = {
 
         this.search_f.onkeydown = function (e) {
             clearTimeout(this.timer);
-            if (e.keyCode === 
-27) { // Esc
+            if (e.keyCode === 27) { // Esc
                 this.value = "";
                 SieveUI.search();
                 e.preventDefault();
@@ -66,7 +65,7 @@ SieveUI.search();
                     visibles[0].classList.toggle("opened");
                     if (!visibles[0].lastElementChild.textContent) SieveUI.genData(visibles[0]);
                 }
-               
+                
  return;
             }
             this.timer = setTimeout(SieveUI.search, 200);
@@ -76,44 +75,43 @@ SieveUI.search();
             e.stopPropagation();
             let rname, t = e.target;
             if (t.nodeName !== "SPAN") return;
-            if (e.keyCode === 27 
-|| e.keyCode === 13) { // Esc or Enter
+            if (e.keyCode === 27 || e.keyCode === 13) { // Esc or Enter
                 e.preventDefault();
                 rname = t.textContent.trim();
                 if (
-                    e.keyCode 
-=== 27 &&
+                    e.keyCode === 27 &&
                     rname === "" &&
                     t.nextElementSibling.textContent &&
-    
+     
                 [].every.call(t.parentNode.querySelectorAll('input[type="text"], textarea, pre'), (el) => (el.env?.editor?.getValue() || el.value).trim() === "")
                 ) {
            
+             
          t.parentNode.parentNode.removeChild(t.parentNode);
                     SieveUI.countRules();
                 } else if (t.textContent) {
                     rname = rname.replace(/[\s,]+/g, "_").substr(0, 50);
                     if (t.parentNode.rule !== rname) {
-      
-                  if (SieveUI.sieve[rname]) {
-                            color_trans(t, "red");
+       
+                      if (SieveUI.sieve[rname]) {
+                             color_trans(t, "red");
 return;
                         }
                         if (t.parentNode.rule && SieveUI.sieve[t.parentNode.rule]) {
-                     
+                   
+           
        SieveUI.sieve[rname] = SieveUI.sieve[t.parentNode.rule];
                             delete SieveUI.sieve[t.parentNode.rule];
                         }
                     }
-                  
-  t.textContent = t.parentNode.rule = rname;
+                   
+     t.textContent = t.parentNode.rule = rname;
                     t.contentEditable = false;
                     t.className = "";
                     if (e.keyCode === 13) {
                         t = t.parentNode.querySelector('input[type="text"]');
                         if (t) t.focus();
                     }
-   
              }
             }
         };
@@ -129,7 +127,8 @@ return;
                 case "○": SieveUI.select("remove"); break;
                 case "◐": SieveUI.select("toggle"); break;
                 case "new-rule": SieveUI.add(); break;
-                case "delete-rules": SieveUI.remove(); break;
+                case "delete-rules": SieveUI.remove();
+ break;
                 case "toggle-rules": SieveUI.disable();
 break;
                 case "import-rules": ImprtHandler(_("NAV_SIEVE"), SieveUI.load); break;
@@ -138,8 +137,7 @@ break;
                 case "update-rules": SieveUI.update(false); break;
                 case "show-details":
                     const t = $("sieve_tips").style;
-                    t.display = "none" 
-=== t.display ? "block" : "none";
+                    t.display = "none" === t.display ? "block" : "none";
                     break;
             }
         };
@@ -148,22 +146,28 @@ break;
     load: function (local_sieve, options, globalConfig, appName, readCfg) {
         if (!local_sieve && SieveUI.loaded) return;
         try {
-            
+             
 let ignored_rules, name, rule, sfrag, visible_rules, i;
             sieve_sec = $("sieve_sec");
             sieve_container = $("sieve_container");
             if (local_sieve) ignored_rules = [];
-            // FIX 2: Use globalConfig if available, as module-level cfg might not be set yet.
-            else local_sieve = (globalConfig && globalConfig.sieve) || cfg.sieve || {};
+            
+            // --- FIX IS HERE ---
+            // Use globalConfig if provided (from init), otherwise use module-level cfg
+            // Also check for globalConfig.sieve if local_sieve is falsy
+            const currentConfig = globalConfig || cfg;
+            if (!local_sieve) {
+                local_sieve = (currentConfig && currentConfig.sieve) ? currentConfig.sieve : {};
+            }
+            // --- END FIX ---
 
-            if (options && options.clear) sieve_container.textContent = "";
+ if (options && options.clear) sieve_container.textContent = "";
             if (Object.keys(local_sieve).length) {
-                sfrag 
-= document.createDocumentFragment();
+                sfrag = document.createDocumentFragment();
                 visible_rules = {};
                 i = sieve_container.childElementCount;
                 while (i--) {
-                    rule = sieve_container.children[i];
+                   rule = sieve_container.children[i];
                     if (rule.rule) visible_rules[rule.rule] = rule;
                 }
             
@@ -173,26 +177,27 @@ let ignored_rules, name, rule, sfrag, visible_rules, i;
         ignored_rules.push(name);
                         continue;
                     }
-                    rule = SieveUI.genEntry(name, local_sieve[name], visible_rules[name]?.classList.contains("opened"));
+                   rule = SieveUI.genEntry(name, local_sieve[name], visible_rules[name]?.classList.contains("opened"));
                     if (visible_rules[name]) {
              
            sieve_container.replaceChild(rule, visible_rules[name]);
                     } else sfrag.appendChild(rule);
                     SieveUI.sieve[name] = local_sieve[name];
                 }
-                if (sfrag.childNodes.length)
+                 if (sfrag.childNodes.length)
               
       if (sieve_container.firstElementChild) sieve_container.insertBefore(sfrag, sieve_container.firstElementChild);
                     else sieve_container.appendChild(sfrag);
             }
-            if (SieveUI.loaded) {
+            
+ if (SieveUI.loaded) {
                 SieveUI.countRules();
                 SieveUI.sieve = SieveUI.prepareRules();
-            } else SieveUI.sieve = 
-local_sieve;
+            } else SieveUI.sieve = local_sieve;
             if (ignored_rules && ignored_rules.length) console.log(app_name, "Ignored rules:", ignored_rules);
         } catch (ex) {
-            console.error(ex);
+            
+ console.error(ex);
         }
         if (!SieveUI.loaded) SieveUI.init(globalConfig, appName, readCfg);
     },
@@ -201,10 +206,9 @@ local_sieve;
       
       const rgxWhitespace = /\s+/g;
             let output = {},
-                dupes = [];
+                 dupes = [];
             const rules = sieve_sec.querySelectorAll("#sieve_container > div"),
-            some_func 
-= (el) => {
+            some_func = (el) => {
                 return el.env?.editor?.getValue().trim() !== "" || (el.value && el.value.trim() !== "");
             };
         for (let i = 0; i < rules.length; ++i) {
@@ -222,86 +226,80 @@ local_sieve;
           if (!ignore_dupes && output[opt_name]) dupes.push(opt_name.replace(/[[\]{}()*+?.\\^$|]/g, "\\$&"));
             output[opt_name] = true;
         }
-        if (!ignore_dupes && dupes.length) {
+         if (!ignore_dupes && dupes.length) {
             alert(_("SIV_ERR_DUPENAME"));
             SieveUI.search_f.value = dupes
     
             .filter((el, idx, s) => s.indexOf(el, idx + 1) < 0)
-                .join("|");
+                 .join("|");
             SieveUI.search();
             return null;
         }
-        output 
-= {};
+        output = {};
         for (let i = 0; i < rules.length; ++i) {
-            let opt_name = rules[i].querySelector(":scope > [data-action='rule']").textContent;
+            
+ let opt_name = rules[i].querySelector(":scope > [data-action='rule']").textContent;
             if (!opt_name) continue;
             output[opt_name] = {};
             let rule = output[opt_name];
             if (rules[i].classList.contains("disabled")) rule.off = 1;
 
             const params = rules[i].querySelectorAll("[data-name]");
-            if (!params.length) 
-{
+            if (!params.length) {
                 if (SieveUI.sieve[rules[i].rule]) {
-                    rule = SieveUI.sieve[rules[i].rule];
+     
+                     rule = SieveUI.sieve[rules[i].rule];
                     if (rules[i].classList.contains("disabled")) rule.off = 1;
                     else delete rule.off;
-                    output[opt_name] 
-= rule;
+                    output[opt_name] = rule;
                     if (rules[i].rule === opt_name) rules[i].rule = opt_name;
                 }
-                continue;
+                 continue;
             }
 
             for (let j = 0; j < params.length; ++j) {
    
              let name = params[j].dataset.name;
                 switch (name) {
-                    case "useimg":
+                     case "useimg":
           
               if (params[j].checked) rule[name] = 1;
                         break;
                     case "note":
-                        params[j].value = params[j].value.trim();
-                        rule[name] = 
-params[j].value.replace(/\r\n?/g, "\n");
+                         params[j].value = params[j].value.trim();
+                        rule[name] = params[j].value.replace(/\r\n?/g, "\n");
                         break;
                     case "link":
-                    case "url":
+                     case "url":
                     case "res":
-    
                 case "img":
-                    case "to": {
+                     case "to": {
            
              let value = params[j].env?.editor?.getValue();
                         if (typeof value === "string" && value !== "") {
-                        
-    rule[name] = value.replace(/\r\n?/g, "\n");
+                            rule[name] = value.replace(/\r\n?/g, "\n");
                         }
-                        break;
+                         break;
                     }
                  
    case "link_ci":
-                    case "img_ci":
+                     case "img_ci":
                     case "link_dc":
-    
                 case "img_dc":
-                    case "link_loop":
-            
-        case "img_loop":
-                        opt_name = name.split("_");
+                     case "link_loop":
+                case "img_loop":
+                     opt_name = name.split("_");
                         name = opt_name[1];
                         opt_name = opt_name[0];
                         if (rule[opt_name] && params[j].checked) {
     
-                        opt_name = (rule[name] || 0) | (opt_name === "link" ? 1 : 2);
+                       
+  opt_name = (rule[name] || 0) | (opt_name === "link" ? 1 : 2);
                             if (opt_name) rule[name] = opt_name;
                         }
-        
-                break;
+                        break;
                 }
-            }
+             }
         }
         return output;
     },
@@ -310,7 +308,7 @@ params[j].value.replace(/\r\n?/g, "\n");
  countRules: function (msg) {
         var count = (sieve_sec.querySelectorAll("#sieve_container > div:not(.hidden)") || []).length;
         $("sieve_count").textContent = count;
-        if (count) this.info_container.style.display = "none";
+ if (count) this.info_container.style.display = "none";
         else {
             this.info_container.textContent = _(msg || (this.search_f.value.trim() ? "NOMATCH" : "EMPTY"));
 this.info_container.style.display = "block";
@@ -325,198 +323,160 @@ this.info_container.style.display = "block";
        sd = data || this.sieve[container.rule] || {};
 
         buildNodes(container, [
-            {
+             {
                 tag: "div", attrs: { class: "action_buttons" },
  
                nodes: [
-                    { tag: "span", attrs: { title: _("SIV_REN_RULE"), "data-action": "rename" }, nodes: ["✏️"] },
-  
-                  { tag: "span", attrs: { title: _("SIV_TOG_RULE"), "data-action": "toggle", class: "bold" }, nodes: ["Ø"] },
-                  
+                     { tag: "span", attrs: { title: _("SIV_REN_RULE"), "data-action": "rename" }, nodes: ["✏️"] },
+                    { tag: "span", attrs: { title: _("SIV_TOG_RULE"), "data-action": "toggle", class: "bold" }, nodes: ["Ø"] },
+                    
   { tag: "span", attrs: { title: _("SIV_DEL_RULE"), "data-action": "delete", class: "bold" }, nodes: ["-"] },
-                    { tag: "span", attrs: { title: _("SIV_EXP_RULE"), "data-action": "export", class: "bold" }, nodes: ["↑"] 
-},
+                     { tag: "span", attrs: { title: _("SIV_EXP_RULE"), "data-action": "export", class: "bold" }, nodes: ["↑"] },
                     { tag: "span", attrs: { title: _("SIV_COPY_RULE"), "data-action": "copy" }, nodes: ["📋"] },
-                  
+                    
   { tag: "span", attrs: { title: _("SIV_FORMAT_JS"), "data-action": "format" }, nodes: ["{}"] },
-                ]
+                 ]
             }
-        
-]);
+        ]);
         buildNodes(vals, [
             {
-                tag: "div", attrs: { class: "rule_line" },
+                 tag: "div", attrs: { class: "rule_line" },
               
   nodes: [
-                    { tag: "label", nodes: ["Link:"] },
-                    { tag: 
-"pre", attrs: { "data-name": "link", placeholder: "link", class: "sieve_shorter_inp tar_small" } },
+                    
+ { tag: "label", nodes: ["Link:"] },
+                    { tag: "pre", attrs: { "data-name": "link", placeholder: "link", class: "sieve_shorter_inp tar_small" } },
                     { tag: "input", attrs: { type: "checkbox", id: "link_ci" + c, "data-name": "link_ci" } },
      
                { tag: "label", attrs: { class: "checkbox", for: "link_ci" + c, title: _("SIV_CI") } },
-                    { 
-tag: "input", attrs: { type: "checkbox", id: "link_dc" + c, "data-name": "link_dc" } },
-                    { tag: "label", attrs: { class: "checkbox", for: "link_dc" + c, title: _("SIV_DC") } },
-   
-                 { tag: "input", attrs: { type: "checkbox", id: "link_loop" + c, "data-name": "link_loop" } },
+                    { tag: "input", attrs: { type: "checkbox", id: "link_dc" + c, "data-name": "link_dc" } },
+                     { tag: "label", attrs: { class: "checkbox", for: "link_dc" + c, title: _("SIV_DC") } },
+                   
+ { tag: "input", attrs: { type: "checkbox", id: "link_loop" + c, "data-name": "link_loop" } },
                    
  { tag: "label", attrs: { class: "checkbox", for: "link_loop" + c, title: _("SIV_LOOP") } },
-                ]
+                 ]
             },
-       
+           
      {
                 tag: "div", attrs: { class: "rule_line" },
                 nodes: [
-      
-              { tag: "label", nodes: ["Url:"] },
-                    { tag: "pre", attrs: { "data-name": "url", placeholder: "url", class: "tar_small" 
-} },
+                    { tag: "label", nodes: ["Url:"] },
+                     { tag: "pre", attrs: { "data-name": "url", placeholder: "url", class: "tar_small" } },
+                ]
+             },
+            {
+                 tag: "div", attrs: { class: "rule_line" },
+                 nodes: [
+                    { tag: "label", nodes: ["Res:"] },
+                     { tag: "pre", attrs: { "data-name": "res", placeholder: "res", class: "tar_code" } },
                 ]
             },
+            
+ { tag: "hr" },
             {
-         
-       tag: "div", attrs: { class: "rule_line" },
-                nodes: [
-                    
-{ tag: "label", nodes: ["Res:"] },
-                    { tag: "pre", attrs: { "data-name": "res", placeholder: "res", class: "tar_code" } },
-             
-   ]
-            },
-            { tag: "hr" },
-            {
-        
-        tag: "div", attrs: { class: "rule_line" },
-                nodes: [
-                   
- { tag: "label", nodes: [""] },
-                    {
-                        
-tag: "label",
-                        nodes: [
-                        
-    { tag: "input", attrs: { type: "checkbox", "data-name": "useimg", id: "useimg" + c } },
-                            { tag: "label", attrs: 
-{ class: "checkbox", for: "useimg" + c } },
-                            " " + _("SIV_USEIMG"),
-           
-             ]
-                    }
+                 tag: "div", attrs: { class: "rule_line" },
+                 nodes: [
+                     { tag: "label", nodes: [""] },
+                     {
+                        tag: "label",
+                         nodes: [
+                            { tag: "input", attrs: { type: "checkbox", "data-name": "useimg", id: "useimg" + c } },
+                             { tag: "label", attrs: { class: "checkbox", for: "useimg" + c } },
+                             " " + _("SIV_USEIMG"),
+                        ]
+                     }
                 ]
  
            },
-            {
-                tag: "div", attrs: { class: "rule_line" },
-     
-           nodes: [
-                    { tag: "label", nodes: ["Img:"] },
-             
-       { tag: "pre", attrs: { "data-name": "img", placeholder: "img", class: "sieve_shorter_inp tar_small" } },
-                    { tag: "input", attrs: { type: "checkbox", id: "img_ci" + 
-c, "data-name": "img_ci" } },
-                    { tag: "label", attrs: { class: "checkbox", for: "img_ci" + c, title: _("SIV_CI") } },
             
-        { tag: "input", attrs: { type: "checkbox", id: "img_dc" + c, "data-name": "img_dc" } },
-                    { tag: "label", attrs: { class: "checkbox", for: 
-"img_dc" + c, title: _("SIV_DC") } },
-                    { tag: "input", attrs: { type: "checkbox", id: "img_loop" + c, "data-name": "img_loop" } },
-          
-          { tag: "label", attrs: { class: "checkbox", for: "img_loop" + c, title: _("SIV_LOOP") } },
-                ]
-          
-  },
-            {
+ {
                 tag: "div", attrs: { class: "rule_line" },
-              
-  nodes: [
-                    { tag: "label", nodes: ["To:"] },
-                    { tag: 
-"pre", attrs: { "data-name": "to", placeholder: "to", class: "tar_code" } },
+           
+ nodes: [
+                     { tag: "label", nodes: ["Img:"] },
+                   { tag: "pre", attrs: { "data-name": "img", placeholder: "img", class: "sieve_shorter_inp tar_small" } },
+                     { tag: "input", attrs: { type: "checkbox", id: "img_ci" + c, "data-name": "img_ci" } },
+                     { tag: "label", attrs: { class: "checkbox", for: "img_ci" + c, title: _("SIV_CI") } },
+                    { tag: "input", attrs: { type: "checkbox", id: "img_dc" + c, "data-name": "img_dc" } },
+                     { tag: "label", attrs: { class: "checkbox", for: "img_dc" + c, title: _("SIV_DC") } },
+                     { tag: "input", attrs: { type: "checkbox", id: "img_loop" + c, "data-name": "img_loop" } },
+                    { tag: "label", attrs: { class: "checkbox", for: "img_loop" + c, title: _("SIV_LOOP") } },
                 ]
             },
-            
-{ tag: "hr" },
             {
-                tag: "div", attrs: { class: "rule_line" },
-             
-   nodes: [
-                    { tag: "label", nodes: ["Note:"] },
-                    { 
-tag: "textarea", attrs: { "data-name": "note", placeholder: "note", class: "" } },
-                ]
+                 tag: "div", attrs: { class: "rule_line" },
+                 nodes: [
+                    { tag: "label", nodes: ["To:"] },
+                    { tag: "pre", attrs: { "data-name": "to", placeholder: "to", class: "tar_code" } },
+                 ]
+            },
+            
+ { tag: "hr" },
+            {
+                 tag: "div", attrs: { class: "rule_line" },
+                 nodes: [
+                     { tag: "label", nodes: ["Note:"] },
+                    { tag: "textarea", attrs: { "data-name": "note", placeholder: "note", class: "" } },
+                 ]
             }
         ]);
 
-        vals = 
-vals.querySelectorAll("input, textarea, [data-name]");
+        vals = vals.querySelectorAll("input, textarea, [data-name]");
         for (const el of vals) {
             if (el.id && el.type === "checkbox" && !el.dataset.name.startsWith("useimg")) {
                 const inp_name = el.id.replace(c, "").split("_");
-                el.defaultChecked 
-= el.checked = sd[inp_name[1]] && sd[inp_name[1]] & (inp_name[0] === "img" ? 2 : 1);
+                el.defaultChecked = el.checked = sd[inp_name[1]] && sd[inp_name[1]] & (inp_name[0] === "img" ? 2 : 1);
             }
-            if (el.nodeName === 'PRE' && el.dataset.name) {
-                let value 
-= sd[el.dataset.name] || "";
+             if (el.nodeName === 'PRE' && el.dataset.name) {
+                let value = sd[el.dataset.name] || "";
                 let small = el.classList.contains("tar_small");
                 let isCode = value.startsWith(":");
                 let editor = ace.edit(el, {
-                    mode: !isCode ? "ace/mode/tex" : "ace/mode/javascript",
-         
-           theme: "ace/theme/chrome",
-                    useWorker: false,
-                 
-   selectionStyle: "text",
-                    wrap: true,
+                     mode: !isCode ? "ace/mode/tex" : "ace/mode/javascript",
+                     theme: "ace/theme/chrome",
+                     useWorker: false,
+                    selectionStyle: "text",
+                     wrap: true,
                     cursorStyle: "slim",
-    
-                animatedScroll: true,
-                    printMargin: false,
-            
-        showGutter: !small,
-                    highlightActiveLine: !small,
-                    
-value: value,
+                    animatedScroll: true,
+                     printMargin: false,
+                    showGutter: !small,
+                     highlightActiveLine: !small,
+                    value: value,
                     tabSize: 2,
-                    indentedSoftWrap: isCode,
-       
-             enableBasicAutocompletion: true,
-                    enableSnippets: true,
-               
-     enableLiveAutocompletion: !small,
+                     indentedSoftWrap: isCode,
+                     enableBasicAutocompletion: true,
+                     enableSnippets: true,
+                     enableLiveAutocompletion: !small,
                 });
-                editor.renderer.setScrollMargin(4, 4, 0, 0);
+ editor.renderer.setScrollMargin(4, 4, 0, 0);
                 editor.setKeyboardHandler("ace/keyboard/vscode");
                 if (!small) {
-                    
-editor.on('focus', function (ev) {
-                        ev.target.parentElement.classList.add("tar_focus");
+                    editor.on('focus', function (ev) {
+                         ev.target.parentElement.classList.add("tar_focus");
                     });
                 }
-  
-          } else if (el.dataset.name) {
-                if (sd[el.dataset.name])
+            } else if (el.dataset.name) {
+                 if (sd[el.dataset.name])
                    
  if (el.type === "checkbox") {
-                        el.defaultChecked = el.checked = !!sd[el.dataset.name];
+                         el.defaultChecked = el.checked = !!sd[el.dataset.name];
                     } else {
-              
-          el.defaultValue = el.value = sd[el.dataset.name] || "";
+                        el.defaultValue = el.value = sd[el.dataset.name] || "";
                     }
-            }
+             }
         }
     },
 
-    genEntry: function (name, data, open) 
-{
+    genEntry: function (name, data, open) {
         var container = document.createElement("div");
         if (data?.off) container.classList.add("disabled");
         if (open) container.classList.add("opened");
         container.rule = name;
         buildNodes(container, [
-            { tag: "span", attrs: { "data-action": "rule" } },
-        
-    { tag: "div", attrs: { "data-form": "1" } },
+             { tag: "span", attrs: { "data-action": "rule" } },
+            { tag: "div", attrs: { "data-form": "1" } },
         ]);
         if (name) container.firstChild.textContent = name;
         if (open) this.genData(container, data);
@@ -525,19 +485,17 @@ editor.on('focus', function (ev) {
 
     add: function () {
         sieve_container.insertBefore(this.genEntry(), sieve_container.firstElementChild);
-        var 
-rd = sieve_container.firstElementChild,
+        var rd = sieve_container.firstElementChild,
             rd_fc = rd.querySelector(':scope > [data-action="rule"]');
         rd_fc.click();
         rd.querySelector('[data-action="rename"]').click();
         this.countRules();
     },
 
-    select: function (type, i, until) {
+     select: function (type, i, until) {
         var cl;
         i = i || 0;
-        until = until ||
-sieve_container.childElementCount;
+        until = until || sieve_container.childElementCount;
         for (; i < until; ++i) {
             cl = sieve_container.children[i].classList;
             if (!cl.contains("hidden")) cl[type]("selected");
@@ -547,48 +505,40 @@ sieve_container.childElementCount;
     click: function (e) {
         e.stopPropagation();
         const target = e.target;
-        const 
-action = target.dataset?.action;
+        const action = target.dataset?.action;
         if (!action || e.button !== 0) return;
         if (action === "rule") {
-            if (e.shiftKey && SieveUI.lastClicked !== null) {
-                let child 
-= e.target.parentNode;
+             if (e.shiftKey && SieveUI.lastClicked !== null) {
+                let child = e.target.parentNode;
                 let currentIndex = 0;
                 while ((child = child.previousElementSibling)) currentIndex++;
                 SieveUI.select(
-                    sieve_container.children[SieveUI.lastClicked].classList.contains("selected") ? "add" : "remove",
-               
-     Math.min(SieveUI.lastClicked, currentIndex),
-                    Math.max(SieveUI.lastClicked, currentIndex) + 1
+                     sieve_container.children[SieveUI.lastClicked].classList.contains("selected") ? "add" : "remove",
+                    Math.min(SieveUI.lastClicked, currentIndex),
+                     Math.max(SieveUI.lastClicked, currentIndex) + 1
                 );
-            } else if (e.ctrlKey 
-|| e.metaKey) {
+            } else if (e.ctrlKey || e.metaKey) {
                 SieveUI.lastClicked = 0;
                 let child = e.target.parentNode;
                 while ((child = child.previousElementSibling)) SieveUI.lastClicked++;
                 e.target.parentNode.classList.toggle("selected");
                 e.preventDefault();
             } else if (!e.target.isContentEditable &&
-              
-  (!e.clientX || Math.abs(SieveUI.lastXY[0] - e.clientX) < 4) &&
-                (!e.clientY || Math.abs(SieveUI.lastXY[1] - e.clientY) < 4)
+                (!e.clientX || Math.abs(SieveUI.lastXY[0] - e.clientX) < 4) &&
+                 (!e.clientY || Math.abs(SieveUI.lastXY[1] - e.clientY) < 4)
             ) {
-      
-          e.target.parentNode.classList.toggle("opened");
+                e.target.parentNode.classList.toggle("opened");
                 if (!e.target.nextElementSibling.textContent) SieveUI.genData(e.target.parentNode);
             }
 
         } else if (action === "delete") {
             SieveUI.deleteRule(target.closest(".opened"));
         } else if (action === "toggle") {
-   
-         target.closest(".opened").classList.toggle("disabled");
+             target.closest(".opened").classList.toggle("disabled");
         } else if (action === "export") {
-            SieveUI.exprt(e, [target.closest(".opened")]);
+             SieveUI.exprt(e, [target.closest(".opened")]);
         } else if (action === "copy") {
-            SieveUI.exprt(e, [target.closest(".opened")], 
-true);
+            SieveUI.exprt(e, [target.closest(".opened")], true);
         } else if (action === "rename") {
             SieveUI.renameRule(target.closest(".opened"));
         } else if (action === "format") {
@@ -596,20 +546,17 @@ true);
         }
     },
 
-    move: function (e) 
-{
+    move: function (e) {
         e.stopPropagation();
         SieveUI.lastXY = [e.clientX, e.clientY];
         var div = e.target.parentNode,
-            i,
+             i,
             list;
-        if (e.target.isContentEditable || e.target.nodeName !== "SPAN" || div.classList.contains("opened") || 
-e.button !== 0) return;
+        if (e.target.isContentEditable || e.target.nodeName !== "SPAN" || div.classList.contains("opened") || e.button !== 0) return;
         e.preventDefault();
         document.onmousemove = function (e) {
             if (Math.abs(SieveUI.lastXY[0] - e.clientX) < 4 && Math.abs(SieveUI.lastXY[1] - e.clientY) < 4) return;
-            div.style.cssText = "left:" + (e.clientX + 15) + "px;" + "top:" + (e.clientY + 15) + 
-"px";
+            div.style.cssText = "left:" + (e.clientX + 15) + "px;" + "top:" + (e.clientY + 15) + "px";
             if (div.classList.contains("move")) return;
             div.classList.add("move");
             list = sieve_container.querySelectorAll((div.classList.contains("selected") ? ".selected, " : "") + ".move");
@@ -626,12 +573,11 @@ e.button !== 0) return;
  
                sieve_container.insertBefore(dcfr, e.target.parentNode);
             }
-            div.classList.remove("move");
+             div.classList.remove("move");
             div.style.top = div.style.left = null;
             list = sieve_container.querySelectorAll(".move_multi");
             for (i = 0; i < list.length; ++i) list[i].classList.remove("move_multi");
-            sieve_container.onmouseover = document.onmouseup 
-= document.onmousemove = null;
+            sieve_container.onmouseover = document.onmouseup = document.onmousemove = null;
         };
     },
 
@@ -648,123 +594,107 @@ e.button !== 0) return;
         exp = JSON.stringify(exp, null, e.shiftKey ? 2 : 0);
 const name = selected.length === 1 ? `${selected[0].rule}-rule` : `sieve`;
         if (exp !== "{}") {
-            if (copy) {
+             if (copy) {
                 navigator.clipboard.writeText(exp)
-      
-              .catch(err => {
-                        console.error("Failed to copy to clipboard:", err);
-     
-                   alert("Failed to copy to clipboard.");
+                    .catch(err => {
+                         console.error("Failed to copy to clipboard:", err);
+                         alert("Failed to copy to clipboard.");
                     });
             } else {
-    
-            download(exp, `${app_name}-${name}.json`, e.ctrlKey || e.metaKey);
+                download(exp, `${app_name}-${name}.json`, e.ctrlKey || e.metaKey);
             }
-        }
+         }
     },
 
     disable: function () {
         var i = sieve_container.childElementCount,
-   
-         list = sieve_container.querySelectorAll("div.selected").length,
+            list = sieve_container.querySelectorAll("div.selected").length,
             cn = sieve_container.children;
         while (i--) {
             if (!list || cn[i].classList.contains("selected")) {
-      
-          cn[i].classList.toggle("disabled");
+                cn[i].classList.toggle("disabled");
                 cn[i].classList.remove("selected");
             }
         }
-    },
+     },
 
     remove: function () {
         if (!confirm(_("DELITEMS"))) return;
         var list = sieve_container.querySelectorAll("div.selected");
         if (list?.length) {
-  
-          for (let i = 0; i < list.length; ++i) {
-                sieve_container.removeChild(list[i]);
+            for (let i = 0; i < list.length; ++i) {
+                 sieve_container.removeChild(list[i]);
             }
         } else {
-    
-        sieve_container.textContent = "";
+            sieve_container.textContent = "";
             $("save_button").click();
         }
         this.countRules();
     },
 
-    rename_del: function (e) {
+     rename_del: function (e) {
         e.stopPropagation();
         let target = e.target;
         let action = target.dataset?.action;
 
         if (action === "rule") {
- 
-           e.preventDefault();
+            e.preventDefault();
             if (e.shiftKey) {
-                SieveUI.renameRule(target.parentNode);
+                 SieveUI.renameRule(target.parentNode);
             } else if (e.ctrlKey) {
-               
- SieveUI.deleteRule(target.parentNode);
+                SieveUI.deleteRule(target.parentNode);
             } else {
                 SieveUI.renameRule(target.parentNode);
             }
-        }
+         }
     },
 
     renameRule: function (ruleNode) {
-        let span 
-= ruleNode.querySelector("[data-action='rule']");
+        let span = ruleNode.querySelector("[data-action='rule']");
         span.textContent = span.textContent.trim();
         span.contentEditable = !span.isContentEditable;
         span.className = span.isContentEditable ? "focus" : "";
         if (span.isContentEditable) {
-            span.focus();
+             span.focus();
         }
     },
 
     formatEditor: function (pre) {
-        const 
-editor = pre?.env?.editor;
+        const editor = pre?.env?.editor;
         if (!editor) return;
         const value = editor.getValue() || "";
         if (value.startsWith(":")) {
-            const cur = editor.selection.getCursor();
+             const cur = editor.selection.getCursor();
             // beautify.js must be loaded in options.html
             editor.setValue(
-  
-              js_beautify(value, {
-                    "indent_size": "2",
-              
-      "keep_array_indentation": true,
-                    "space_before_conditional": true,
+                js_beautify(value, {
+                     "indent_size": "2",
+                    "keep_array_indentation": true,
+                     "space_before_conditional": true,
                     "brace_style": "none,preserve-inline",
  
                }),
-                -1
+                 -1
             );
             editor.gotoLine(cur.row + 1, cur.column);
         }
-  
-  },
+    },
 
     deleteRule: function (ruleNode) {
         if (ruleNode?.parentNode && confirm(_("AREYOUSURE"))) {
-            ruleNode.parentNode.removeChild(ruleNode);
+             ruleNode.parentNode.removeChild(ruleNode);
             SieveUI.countRules();
         }
     },
 
     search: function () {
-    
-    var what = new RegExp(SieveUI.search_f.value.trim() || ".", "i"),
+        var what = new RegExp(SieveUI.search_f.value.trim() || ".", "i"),
             list = sieve_container.children,
             i = list.length;
         while (i--) {
-        
-    let name = list[i].querySelector(":scope > [data-action='rule']").textContent;
+            let name = list[i].querySelector(":scope > [data-action='rule']").textContent;
             if (name) {
-                list[i].classList[what.test(name) ? "remove" : "add"]("hidden");
+                 list[i].classList[what.test(name) ? "remove" : "add"]("hidden");
             }
         }
         SieveUI.countRules();
@@ -780,18 +710,16 @@ if (res?.updated_sieve) {
                 SieveUI.load(res.updated_sieve, null, cfg, app_name, readCfg_func);
             } else if (res?.error) {
                 alert(res.error);
-                if (confirm(_("SIV_LOCALALERT"))) {
-        
-            SieveUI.update(true);
+ if (confirm(_("SIV_LOCALALERT"))) {
+                    SieveUI.update(true);
                     return;
                 }
             }
             
-            // FIX 3: Call the stored readCfg function
+             // FIX 3: Call the stored readCfg function
     if (readCfg_func) {
                 await readCfg_func();
             }
         }
-  
-  },
+    },
 };

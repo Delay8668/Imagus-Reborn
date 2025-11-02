@@ -10,7 +10,8 @@ async function loadManifest(manifestPath) {
     return JSON.parse(raw);
 }
 
-function clone(data) {
+function clone(data) 
+{
     return JSON.parse(JSON.stringify(data));
 }
 
@@ -24,13 +25,15 @@ async function writeManifest(outputPath, manifest) {
 async function createZip(sourceDir, zipPath) {
     await fs.rm(zipPath, { force: true });
     await new Promise((resolve, reject) => {
-        const output = createWriteStream(zipPath);
+       
+     const output = createWriteStream(zipPath);
         const archive = archiver("zip", { zlib: { level: 9 } });
 
         output.on("close", resolve);
         output.on("error", reject);
         archive.on("error", reject);
 
+ 
         archive.pipe(output);
         archive.glob("**/*", { cwd: sourceDir, dot: true });
         archive.finalize().catch(reject);
@@ -41,21 +44,32 @@ function convertBackgroundForFirefox(manifest) {
   const serviceWorker = manifest.background?.service_worker;
   if (!serviceWorker) return;
   
-  // Firefox doesn't support service_worker yet, use scripts instead
-  // Both can coexist since Firefox 121+ and Chrome 121+
+
   manifest.background = {
     scripts: [serviceWorker]
     // Remove service_worker and type: "module" for Firefox
   };
 }
 
+function addContentScriptForFirefox(manifest) {
+  // Since we removed content_scripts from the base manifest to rely on
+  // dynamic registration (chrome.scripting) for Chrome,
+  // we must add it back here for Firefox, which uses static registration.
+  if (!manifest.content_scripts) {
+    manifest.content_scripts = [{
+      "matches": ["<all_urls>"],
+      "js": ["main.js"],
+      "run_at": "document_idle"
+    }];
+  }
+}
+
 function removeUnsupportedPermissions(manifest) {
   if (!manifest.permissions) return;
   
-  // Firefox doesn't support these permissions in MV3
-  const unsupported = ['userScripts'];
+  // Firefox doesn't support userScripts or scripting in MV3
   manifest.permissions = manifest.permissions.filter(
-    perm => !unsupported.includes(perm)
+    perm => perm !== 'userScripts' && perm !== 'scripting'
   );
 }
 
@@ -65,9 +79,8 @@ async function main() {
     
     // Read from 'dist', which is our clean V3 build
     const srcDir = path.join(projectRoot, "dist"); 
-    const srcManifestPath = path.join(srcDir, "manifest.json"); 
-    
-    const outputRoot = path.join(projectRoot, "build");
+    const srcManifestPath = path.join(srcDir, "manifest.json");
+const outputRoot = path.join(projectRoot, "build");
     const outputDir = path.join(outputRoot, "firefox"); // Final Firefox files
     const firefoxManifestPath = path.join(outputDir, "manifest.json");
     const zipPath = path.join(outputRoot, "imagus-reborn-firefox.xpi");
@@ -77,7 +90,11 @@ async function main() {
 
     const baseManifest = await loadManifest(srcManifestPath); 
     const firefoxManifest = clone(baseManifest);
-convertBackgroundForFirefox(firefoxManifest); 
+
+    // Apply Firefox-specific patches
+    convertBackgroundForFirefox(firefoxManifest); 
+    removeUnsupportedPermissions(firefoxManifest);
+    addContentScriptForFirefox(firefoxManifest);
 
 
     // 3. Prepare output directory (copy from 'dist' to 'build/firefox')
@@ -89,7 +106,8 @@ convertBackgroundForFirefox(firefoxManifest);
     await writeManifest(firefoxManifestPath, firefoxManifest); 
 
     // 5. Zip the final Firefox directory
-    await createZip(outputDir, zipPath); 
+    await createZip(outputDir, 
+ zipPath); 
 
     console.log(`✅ Firefox bundle ready at ${path.relative(projectRoot, outputDir)}`); 
     console.log(`✅ Firefox zip created at ${path.relative(projectRoot, zipPath)}`); 

@@ -54,32 +54,32 @@ export class MessageController {
             
             // Note: These handlers are likely for an options page.
             // For security, you might want to check sender.url
-            // to ensure they only come from your extension's options.
+             // to ensure they only come from your extension's options.
             case "cfg_get":
                 this.#storage.get(msg.keys).then(data => {
-                    context.postMessage({ cfg: data });
+                     context.postMessage({ cfg: data });
                 });
                 return true; // Async
 
             case "cfg_del":
-                this.#storage.remove(msg.keys);
+                 this.#storage.remove(msg.keys);
                 break;
 
             case "savePrefs":
                 this.#config.savePrefs(msg.prefs).then(() => {
-                    context.postMessage({ success: true });
+                     context.postMessage({ success: true });
                 });
                 return true; // Async
 
             case "update_sieve":
-                this.#config.updateSieve(msg.local).then(data => {
+                 this.#config.updateSieve(msg.local).then(data => {
                     context.postMessage(data);
                 });
                 return true; // Async
-            
+             
             case "getLocaleList":
                 fetch(extensionURL("data/locales.json"))
-                    .then(resp => resp.text())
+                     .then(resp => resp.text())
                     .then(resp => context.postMessage(resp));
                 return true; // Async
 
@@ -98,11 +98,15 @@ export class MessageController {
 
             // Complex resolve logic
             case "resolve":
-                this.#resolve.handleResolve(msg, context.postMessage);
-                return true; // Async
+                if (!msg.id || !msg.params || !msg.url) {
+                    console.error("Invalid resolve message", msg);
+                    return;
+                }
+                this.#resolve.handleResolve(msg, context.tabId);
+                break;
             
             case "loadScripts":
-                // This command seems to be for dynamic registration,
+                 // This command seems to be for dynamic registration,
                 // which is already handled on install/startup.
                 // We'll leave it here in case it's called from options.
                 this.registerContentScripts?.(); // registerContentScripts must be passed in

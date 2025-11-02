@@ -16,23 +16,40 @@ export class ResolveService {
      * Handles the "resolve" message from the content script.
      * Fetches the URL and parses the response.
      * @param {object} msg - The incoming message.
-     * @param {Function} sendResponse - The function to send a reply.
+     * @param {number} tabId - The ID of the tab to send the response to.
      */
-    async handleResolve(msg, sendResponse) {
-        const data = {
-            cmd: "resolved",
-            id: msg.id,
-            m: null,
-            params: msg.params,
-        };
-        const rule = this.#configService.getSieve()[data.params.rule.id];
+async handleResolve(msg, tabId) {
+    // Guard against null/undefined msg
+    if (!msg || !msg.id || !msg.params) {
+        console.error("ResolveService: Invalid message structure", msg);
+        return;
+    }
 
+    if (!tabId) {
+        console.error("ResolveService: No tabId provided");
+        return;
+    }
+
+    const data = {
+        cmd: "resolved",
+        id: msg.id,
+        m: null,
+        params: msg.params,
+    };
+    
+    // Safe property access with optional chaining
+    const rule = this.#configService.getSieve()?.[data.params.rule?.id];
+    if (!rule) {
+        console.error("ResolveService: Rule not found");
+        return;
+    }
         if (data.params.rule.req_res) {
             data.params.rule.req_res = this.#configService.getSieveRes(data.params.rule.id);
         }
         if (data.params.rule.skip_resolve) {
-            data.params.url = [""];
-            sendResponse(data);
+             data.params.url = [""];
+            // --- MODIFIED ---
+            chrome.tabs.sendMessage(tabId, data);
             return;
         }
 
@@ -48,52 +65,54 @@ export class ResolveService {
 
         try {
             const response = await fetch(msg.url, {
-                method: postData ? "POST" : "GET",
+                 method: postData ? "POST" : "GET",
                 body: postData,
                 headers: postData ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
-            });
+             });
 
             const contentType = response.headers.get("Content-Type");
             if (/^(image|video|audio)\//i.test(contentType)) {
                 data.m = msg.url;
                 data.noloop = true;
                 console.warn(`${this.#manifest.name}: rule ${data.params.rule.id} matched against an image file`);
-                sendResponse(data);
+                // --- MODIFIED ---
+                chrome.tabs.sendMessage(tabId, data);
                 return;
             }
 
-            const body = await response.text();
+             const body = await response.text();
             let base = body.slice(0, 4096);
             const baseHrefMatch = /<base\s+href\s*=\s*("[^"]+"|'[^']+')/.exec(base);
             base = baseHrefMatch
-                ? withBaseURI(msg.url, baseHrefMatch[1].slice(1, -1).replace(/&amp;/g, "&"), true)
+                 ? withBaseURI(msg.url, baseHrefMatch[1].slice(1, -1).replace(/&amp;/g, "&"), true)
                 : msg.url;
 
             if (rule.res === 1) { // Dynamic function (now we have the body)
-                data.params._ = body;
+                 data.params._ = body;
                 data.params.base = base.replace(/(\/)[^\/]*(?:[?#].*)*$/, "$1");
-                sendResponse(data);
+                // --- MODIFIED ---
+                chrome.tabs.sendMessage(tabId, data);
                 return;
             }
 
             let patterns = this.#configService.getSieveRes(data.params.rule.id);
-            patterns = Array.isArray(patterns) ? patterns : [patterns];
+             patterns = Array.isArray(patterns) ? patterns : [patterns];
             
             // Interpolate $1, $2, etc. into the regex
-            patterns = patterns.map((pattern) => {
+             patterns = patterns.map((pattern) => {
                 const source = pattern.source || pattern;
                 if (!source.includes("$")) return pattern;
                 
                 let group = data.params.length;
-                group = Array.from({ length: group }, (_, i) => i).join("|");
+                 group = Array.from({ length: group }, (_, i) => i).join("|");
                 group = new RegExp("([^\\\\]?)\\$(" + group + ")", "g");
 
                 const newSource = group.test(source)
                     ? source.replace(group, (match, pre, idx) => {
-                        return idx < data.params.length && pre !== "\\"
-                            ? pre + (data.params[idx] ? data.params[idx].replace(/[/\\^$-.+*?|(){}[\]]/g, "\\$&") : "")
+                         return idx < data.params.length && pre !== "\\"
+                             ? pre + (data.params[idx] ? data.params[idx].replace(/[/\\^$-.+*?|(){}[\]]/g, "\\$&") : "")
                             : match;
-                    })
+                     })
                     : source;
                 
                 return (typeof pattern === "string") ? newSource : new RegExp(newSource, pattern.flags);
@@ -103,21 +122,23 @@ export class ResolveService {
             if (match) {
                 const loopParam = data.params.rule.loop_param;
                 if (rule.dc && (("link" === loopParam && rule.dc !== 2) || ("img" === loopParam && rule.dc > 1))) {
-                    match[1] = decodeURIComponent(decodeURIComponent(match[1]));
+                     match[1] = decodeURIComponent(decodeURIComponent(match[1]));
                 }
                 data.m = withBaseURI(base, match[1].replace(/&amp;/g, "&"));
                 
                 if ((match[2] && (match = match.slice(1))) || (patterns[1] && (match = patterns[1].exec(body)))) {
-                    data.m = [data.m, match.filter((val, idx) => idx && val).join(" - ")];
+                     data.m = [data.m, match.filter((val, idx) => idx && val).join(" - ")];
                 }
             } else {
-                console.info(`${this.#manifest.name}: no match for ${data.params.rule.id}`);
+                 console.info(`${this.#manifest.name}: no match for ${data.params.rule.id}`);
             }
-            sendResponse(data);
+            // --- MODIFIED ---
+            chrome.tabs.sendMessage(tabId, data);
 
         } catch (error) {
             console.error(`ResolveService error for rule ${data.params.rule.id}:`, error);
-            sendResponse(data); // Send back data with m: null
+            // --- MODIFIED ---
+            chrome.tabs.sendMessage(tabId, data); // Send back data with m: null
         }
     }
 }

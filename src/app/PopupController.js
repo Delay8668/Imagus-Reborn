@@ -77,8 +77,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
         this.#HLP = this.#doc.createElement("a");
         this.#imageResolver.setContext(win, doc, this.#HLP);
-        
-        const hzSettings = this.#settings.get('hz');
+const hzSettings = this.#settings.get('hz');
         this.#freeze = hzSettings ? !hzSettings.deactivate : false;
         this.#state = 1; // Start idle
     }
@@ -86,7 +85,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     // --- Public API (Called by main.js)    ---
     // --- ================================= ---
 
-    initialSetup() {
+     initialSetup() {
         this.#updateViewportDimensions();
         
         // Setup MutationObserver for attribute changes
@@ -95,13 +94,13 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#mutObserver = new this.#win.MutationObserver((muts) => {
                 let i = muts.length;
                 while (i--) {
-                    this.#onAttrChange(muts[i]);
+                     this.#onAttrChange(muts[i]);
                 }
             });
         }
     }
 
-    destroy() {
+     destroy() {
         this.#reset(false); // Full reset
         this.#state = null;
         if (this.#DIV) {
@@ -114,7 +113,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#mutObserver = null;
         }
         // Clear all timers
-        for (const key in this.#timers) {
+         for (const key in this.#timers) {
             clearTimeout(this.#timers[key]);
             clearInterval(this.#timers[key]);
         }
@@ -122,19 +121,19 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
     toggle(disable) {
         if (this.#state || disable === true) {
-            // Disable
+             // Disable
             this.#reset(false);
             this.#state = 0; // Disabled
             if (this.#mutObserver) this.#mutObserver.disconnect();
         } else {
-            // Enable
+             // Enable
             this.#state = 1; // Idle
             this.initialSetup();
         }
     }
 
     setIsFrame(isFrame) {
-        this.#iFrame = isFrame;
+         this.#iFrame = isFrame;
     }
 
     /**
@@ -144,7 +143,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#timers.preload) {
             clearTimeout(this.#timers.preload);
         }
-        this.#timers.preload = setTimeout(this.#runPreload.bind(this), 300);
+         this.#timers.preload = setTimeout(this.#runPreload.bind(this), 300);
     }
 
     // --- ================================= ---
@@ -157,8 +156,8 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#state === 0) return; // Disabled
 
         // FIX: Get settings from the instance property
-        const cfg = this.#settings.all; 
-        if (!cfg || !cfg.hz) {
+        const cfg = this.#settings.all;
+if (!cfg || !cfg.hz) {
             console.error("Settings not loaded in PopupController");
             return;
         }
@@ -166,7 +165,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (cfg.hz.deactivate && (this.#freeze || e[cfg._freezeTriggerEventKey])) return;
 
         if (this.#fireHide) {
-            // Check if mouse is over the popup itself
+             // Check if mouse is over the popup itself
             if (e.target && (e.target.IMGS_ || ((e.relatedTarget || e).IMGS_ && e.target === this.#TRG))) {
                 if (cfg.hz.capNoSBar) e.preventDefault();
                 return;
@@ -174,7 +173,8 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
             // Clean up previous target styles
             if (e.relatedTarget) {
-                if (this.#lastTRGStyle.outline !== null) {
+                
+ if (this.#lastTRGStyle.outline !== null) {
                     e.relatedTarget.style.outline = this.#lastTRGStyle.outline;
                     this.#lastTRGStyle.outline = null;
                 }
@@ -184,10 +184,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 }
             }
             
+ 
             // Clean up timers and state
             this.#clearTimers(true); // keep anim_end
             if (this.#CAP) {
-                this.#CAP.style.display = "none";
+                 this.#CAP.style.display = "none";
                 if (this.#CAP.firstChild) this.#CAP.firstChild.style.display = "none";
             }
             if (this.#nodeToReset) {
@@ -199,7 +200,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 this.#timers.no_anim_in_album = null;
                 this.#DIV.style.transition = this.#anim.css;
             }
-            this.#TRG = null;
+             this.#TRG = null;
             
             if (this.#hideTime === 0 && this.#state < 3) this.#hideTime = Date.now();
             if (!e.target) {
@@ -208,6 +209,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             }
         }
 
+ 
         const trg = e.target;
         if (trg.IMGS_c === true) {
             if (this.#fireHide) this.#hide(e);
@@ -218,14 +220,17 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         let src;
         
         if (!cache) {
-            if (trg.IMGS_c_resolved) {
+             if (trg.IMGS_c_resolved) {
                 src = trg.IMGS_c_resolved;
             } else {
-                this.#TRG = trg; // Temporarily set TRG for find
+                // --- FIX: Set context node *before* calling find() ---
+                this.#imageResolver.setContextNode(trg);
+                // ---
+                
                 // FIX: Get sieve from settings
                 const findResult = this.#imageResolver.find(trg, e.clientX, e.clientY);
                 src = this.#processFindResult(findResult, trg);
-                this.#TRG = null; // Unset TRG
+                // this.#TRG = null; // Unset TRG (no longer needed)
             }
         }
         
@@ -234,7 +239,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (cfg.hz.capNoSBar) e.preventDefault();
             
             this.#clearTimers(true); // Clear all but anim_end
-            if (!cfg.hz.waitHide) clearTimeout(this.#timers.anim_end);
+             if (!cfg.hz.waitHide) clearTimeout(this.#timers.anim_end);
 
             if (!this.#iFrame) this.#win.addEventListener("mousemove", this.handleMouseMove.bind(this), true);
 
@@ -243,7 +248,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 trg.IMGS_c_resolved = src;
             }
 
-            this.#TRG = trg;
+             this.#TRG = trg;
             this.#SRC = cache || src;
             this.#x = e.clientX;
             this.#y = e.clientY;
@@ -252,12 +257,12 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
             // Immediate load logic
             if (!isFrozen &&
-                (!cfg.hz.waitHide || cfg.hz.delay < 15) &&
+                 (!cfg.hz.waitHide || cfg.hz.delay < 15) &&
                 ((this.#fireHide && this.#state > 2) || this.#state === 2 || (this.#hideTime && Date.now() - this.#hideTime < 200))
             ) {
                 if (this.#hideTime) this.#hideTime = 0;
                 this.#fireHide = 1; // Special state for immediate load
-                this.#load(this.#SRC);
+                 this.#load(this.#SRC);
                 return;
             }
 
@@ -271,31 +276,31 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#fireHide = true;
 
             // Mark-on-hover logic
-            if (cfg.hz.markOnHover && (isFrozen || cfg.hz.delay >= 25)) {
+             if (cfg.hz.markOnHover && (isFrozen || cfg.hz.delay >= 25)) {
                 if (cfg.hz.markOnHover === "cr") {
-                    this.#lastTRGStyle.cursor = trg.style.cursor;
+                     this.#lastTRGStyle.cursor = trg.style.cursor;
                     trg.style.cursor = "zoom-in";
                 } else {
                     this.#lastTRGStyle.outline = trg.style.outline;
                     trg.style.outline = "1px " + cfg.hz.markOnHover + " red";
                 }
-            }
+             }
 
             if (isFrozen) {
                 clearTimeout(this.#timers.resolver);
                 return;
             }
-            
+             
             // Set timer to load
             const delay = (this.#state === 2 || this.#hideTime) && cfg.hz.waitHide ? this.#anim.maxDelay : cfg.hz.delay;
             if (delay) {
-                this.#timers.preview = setTimeout(() => this.#load(this.#SRC), delay);
+                 this.#timers.preview = setTimeout(() => this.#load(this.#SRC), delay);
             } else {
                 this.#load(this.#SRC);
             }
 
         } else {
-            trg.IMGS_c = true; // Mark as non-viable
+             trg.IMGS_c = true; // Mark as non-viable
             this.#TRG = null;
             if (this.#fireHide) this.#hide(e);
         }
@@ -309,29 +314,29 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         const cfg = this.#settings.all;
         
         if (this.#fullZm) {
-            let x = this.#x, y = this.#y, w, h;
+             let x = this.#x, y = this.#y, w, h;
             if (!e) e = {};
             if (this.#mdownstart === true) this.#mdownstart = false;
 
             if (e.target) {
                 this.#x = e.clientX;
                 this.#y = e.clientY;
-            }
+}
 
             if (this.#fullZm > 1 && e[0] !== true) {
                 w = this.#BOX.style;
                 if (this.#fullZm === 3 && e.target) {
-                    x = parseInt(w.left, 10) - x + e.clientX;
+                     x = parseInt(w.left, 10) - x + e.clientX;
                     y = parseInt(w.top, 10) - y + e.clientY;
                 } else if (e[1] !== undefined) {
-                    x = parseInt(w.left, 10) + e[0];
+                     x = parseInt(w.left, 10) + e[0];
                     y = parseInt(w.top, 10) + e[1];
                 } else x = null;
             } else {
                 const rot = this.#state === 4 && this.#DIV.curdeg % 180;
                 if (this.#BOX === this.#DIV) {
                     if (this.#TRG.IMGS_SVG) {
-                        h = this.#stack[this.#IMG.src];
+                         h = this.#stack[this.#IMG.src];
                         h = h[1] / h[0];
                     }
                     w = e[2] || parseInt(this.#DIV.style.width, 10);
@@ -355,7 +360,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 this.#BOX.style.left = x + "px";
                 this.#BOX.style.top = y + "px";
             }
-            return;
+             return;
         }
 
         this.#x = e.clientX;
@@ -370,16 +375,16 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 this.#timers.preview = setTimeout(() => this.#load(), cfg.hz.delay);
             }
         } else if (
-            (e.target.IMGS_ && this.#TBOX && (this.#TBOX.Left > e.pageX || this.#TBOX.Right < e.pageX || this.#TBOX.Top > e.pageY || this.#TBOX.Bottom < e.pageY)) ||
+             (e.target.IMGS_ && this.#TBOX && (this.#TBOX.Left > e.pageX || this.#TBOX.Right < e.pageX || this.#TBOX.Top > e.pageY || this.#TBOX.Bottom < e.pageY)) ||
             (!e.target.IMGS_ && this.#TRG !== e.target)
-        ) {
+         ) {
             // Mouse moved off the target or popup, hide
             this.handleMouseOver({ relatedTarget: this.#TRG, clientX: e.clientX, clientY: e.clientY });
         } else if (cfg.hz.move && this.#state > 2 && !this.#timers.m_move && (this.#state === 3 || cfg.hz.placement < 2 || cfg.hz.placement > 3)) {
             // Move the popup
             this.#timers.m_move = this.#win.requestAnimationFrame(() => this.#m_move_show());
         }
-    }
+     }
 
     handleMouseLeave(e) {
         if (this.#state === 0) return;
@@ -389,7 +394,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     }
 
     handleMouseDown(e) {
-        if (!this.#settings || !e.isTrusted) return;
+         if (!this.#settings || !e.isTrusted) return;
         const cfg = this.#settings.all;
         const root = this.#doc.compatMode && this.#doc.compatMode[0] === "B" ? this.#doc.body : this.#doc.documentElement;
         if (e.clientX >= root.clientWidth || e.clientY >= root.clientHeight) return;
@@ -403,19 +408,19 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         if (e.button === 0) {
-            if (this.#fullZm) {
+             if (this.#fullZm) {
                 this.#mdownstart = true;
                 if (e.ctrlKey || this.#fullZm !== 2) return;
                 stopEvent(e);
                 this.#fullZm = 3; // Start drag
-                this.#win.addEventListener("mouseup", this.#fzDragEnd.bind(this), true);
+                 this.#win.addEventListener("mouseup", this.#fzDragEnd.bind(this), true);
                 return;
             }
             if (e.target === this.#CNT) {
                 this.#md_x = e.clientX;
                 this.#md_y = e.clientY;
                 return;
-            }
+}
             if (this.#fireHide) this.handleMouseOver({ relatedTarget: this.#TRG, clientX: e.clientX, clientY: e.clientY });
             if (!this.#freeze || this.#lastScrollTRG) this.#freeze = 1;
             return;
@@ -424,10 +429,10 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (!isRightButton) return;
         
         if (cfg.hz.actTrigger === "m2") {
-            if (this.#fireHide && shouldFreeze) {
+             if (this.#fireHide && shouldFreeze) {
                 this.#SRC = { m2: this.#SRC === null ? this.#TRG.IMGS_c_resolved : this.#SRC.m2 || this.#SRC };
             }
-            this.#freeze = cfg.hz.deactivate;
+             this.#freeze = cfg.hz.deactivate;
         } else if (this.#keyup_freeze_on) {
             this.#keyup_freeze();
             this.#freeze = this.#freeze ? 1 : 0;
@@ -460,13 +465,13 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
             if (
                 e.button === 2 &&
-                (!this.#fireHide || this.#state > 2) &&
+                 (!this.#fireHide || this.#state > 2) &&
                 (Math.abs(this.#md_x - e.clientX) > 5 || Math.abs(this.#md_y - e.clientY) > 5) &&
-                cfg.hz.actTrigger === "m2" &&
+                 cfg.hz.actTrigger === "m2" &&
                 !cfg.hz.deactivate
             ) {
                 stopEvent(e);
-            }
+}
             return;
         }
 
@@ -492,7 +497,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         }
 
         if (elapsed && this.#state > 2 && !this.#fullZm && cfg.hz.fzOnPress === 1) {
-            return;
+             return;
         }
 
         if (e.target === this.#CNT) {
@@ -502,7 +507,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             const imgSrc = this.#imageResolver.checkIMG(e.target) || this.#imageResolver.checkBG(this.#win.getComputedStyle(e.target).backgroundImage);
 
             if (imgSrc) {
-                this.#TRG = this.#nodeToReset = e.target;
+                 this.#TRG = this.#nodeToReset = e.target;
                 this.#fireHide = true;
                 this.#x = e.clientX;
                 this.#y = e.clientY;
@@ -522,7 +527,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (this.#keyup_freeze_on || typeof this.#freeze === "number") return;
             if (e.repeat || shortcut.key(e) !== cfg.hz.actTrigger) return;
             if (this.#fireHide && this.#state < 3)
-                if (cfg.hz.deactivate) this.handleMouseOver({ relatedTarget: this.#TRG });
+                 if (cfg.hz.deactivate) this.handleMouseOver({ relatedTarget: this.#TRG });
                 else this.#load(this.#SRC === null ? this.#TRG.IMGS_c_resolved : this.#SRC);
             this.#freeze = !!cfg.hz.deactivate;
             this.#keyup_freeze_on = true;
@@ -530,7 +535,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         if (!e.repeat)
-            if (this.#keyup_freeze_on) this.#keyup_freeze();
+             if (this.#keyup_freeze_on) this.#keyup_freeze();
             else if (this.#freeze === false && !this.#fullZm && this.#lastScrollTRG) this.#mover({ target: this.#lastScrollTRG });
         
         key = shortcut.key(e);
@@ -543,31 +548,31 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             pv = true;
             if (key === cfg.keys.hz_preload) this.#win.top.postMessage({ vdfDpshPtdhhd: "preload" }, "*");
             else if (key === cfg.keys.hz_toggle) {
-                if (this.#win.sessionStorage.IMGS_suspend) delete this.#win.sessionStorage.IMGS_suspend;
+                 if (this.#win.sessionStorage.IMGS_suspend) delete this.#win.sessionStorage.IMGS_suspend;
                 else this.#win.sessionStorage.IMGS_suspend = "1";
                 this.#win.top.postMessage({ vdfDpshPtdhhd: "toggle" }, "*");
             } else pv = false;
         } else if (!(e.altKey || e.metaKey) && (this.#state > 2 || this.#LDR_msg)) {
-            pv = !e.ctrlKey;
+             pv = !e.ctrlKey;
             if ((e.ctrlKey && key === "S") || (!e.ctrlKey && !e.shiftKey && key === cfg.keys.hz_save)) {
                 if (!e.repeat && this.#CNT.src) {
-                    this.#portService.send({
+                     this.#portService.send({
                         cmd: "download",
-                        url: this.#CNT.src,
+                         url: this.#CNT.src,
                         priorityExt: (this.#CNT.src.match(/#([\da-z]{3,4})$/) || [])[1],
-                        ext: { img: "jpg", video: "mp4", audio: "mp3" }[this.#CNT.audio ? "audio" : this.#CNT.localName],
+                         ext: { img: "jpg", video: "mp4", audio: "mp3" }[this.#CNT.audio ? "audio" : this.#CNT.localName],
                     });
                 }
-                pv = true;
+                 pv = true;
             } else if (e.ctrlKey) {
                 if (this.#state === 4)
-                    if (key === "C") {
+                     if (key === "C") {
                         if (!e.shiftKey && "oncopy" in this.#doc) {
-                            pv = true;
+                             pv = true;
                             if (Date.now() - (this.#timers.copy || 0) < 500) key = this.#TRG.IMGS_caption;
                             else key = this.#CNT.src;
                             const oncopy = (ev) => {
-                                ev.currentTarget.removeEventListener(ev.type, oncopy);
+                                 ev.currentTarget.removeEventListener(ev.type, oncopy);
                                 ev.clipboardData.setData("text/plain", key);
                                 ev.preventDefault();
                             };
@@ -575,11 +580,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                             this.#doc.execCommand("copy");
                             this.#timers.copy = Date.now();
                         }
-                    } else if (key === cfg.keys.hz_open) {
+                     } else if (key === cfg.keys.hz_open) {
                         key = {};
                         ((this.#TRG.IMGS_caption || "").match(/\b((?:www\.[\w-]+(\.\S{2,7}){1,4}|https?:\/\/)\S+)/g) || []).forEach(function (el) {
-                            key[el[0] === "w" ? "http://" + el : el] = 1;
-                        });
+                             key[el[0] === "w" ? "http://" + el : el] = 1;
+                         });
                         key = Object.keys(key);
                         if (key.length) {
                             this.#portService.send({ cmd: "open", url: key, nf: !!e.shiftKey });
@@ -587,7 +592,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                             pv = true;
                         }
                     } else if (this.#CNT === this.#VID) {
-                        if (key === "Left" || key === "Right") {
+                         if (key === "Left" || key === "Right") {
                             key = key === "Left" ? -5 : 5;
                             this.#VID.currentTime += key * (e.shiftKey ? 3 : 1);
                         } else if (key === "Up" || key === "Down") {
@@ -598,7 +603,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             } else if (key === "-" || key === "+" || key === "=") this.#resize(key === "-" ? "-" : "+");
             else if (key === "Tab") {
                 if (this.#TRG.IMGS_HD_stack) {
-                    if (this.#CAP) this.#CAP.style.display = "none";
+                     if (this.#CAP) this.#CAP.style.display = "none";
                     this.#TRG.IMGS_HD = !this.#TRG.IMGS_HD;
                     key = this.#TRG.IMGS_c || this.#TRG.IMGS_c_resolved;
                     delete this.#TRG.IMGS_c;
@@ -608,11 +613,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 if (e.shiftKey) cfg.hz.hiRes = !cfg.hz.hiRes;
             } else if (key === "Esc")
                 if (this.#CNT === this.#VID && (this.#win.fullScreen || this.#doc.fullscreenElement || (this.#topWinW === this.#win.screen.width && this.#topWinH === this.#win.screen.height)))
-                    pv = false;
+                     pv = false;
                 else this.#reset(true);
             else if (key === cfg.keys.hz_fullZm || key === "Enter")
                 if (this.#fullZm)
-                    if (e.shiftKey) this.#fullZm = this.#fullZm === 1 ? 2 : 1;
+                     if (e.shiftKey) this.#fullZm = this.#fullZm === 1 ? 2 : 1;
                     else this.#reset(true);
                 else {
                     this.#win.removeEventListener("mouseover", this.handleMouseOver.bind(this), true);
@@ -622,14 +627,14 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                     this.#switchToHiResInFZ();
                     if (this.#anim.maxDelay)
                         setTimeout(() => {
-                            if (this.#fullZm) this.#DIV.style.transition = "all 0s";
-                        }, this.#anim.maxDelay);
+                             if (this.#fullZm) this.#DIV.style.transition = "all 0s";
+                         }, this.#anim.maxDelay);
                     pv = this.#DIV.style;
                     if (this.#CNT === this.#VID) this.#VID.controls = true;
                     if (this.#state > 2 && this.#fullZm !== 2) {
                         pv.visibility = "hidden";
                         this.#resize(0);
-                        this.handleMouseMove();
+this.handleMouseMove();
                         pv.visibility = "visible";
                     }
                     if (!this.#iFrame) this.#win.addEventListener("mousemove", this.handleMouseMove.bind(this), true);
@@ -641,39 +646,39 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                     pv = true;
                     if (key === "Space")
                         if (e.shiftKey) {
-                            if (!this.#VID.audio) this.#VID.controls = this.#VID._controls = !this.#VID._controls;
+                             if (!this.#VID.audio) this.#VID.controls = this.#VID._controls = !this.#VID._controls;
                         } else if (this.#VID.paused) this.#VID.play();
                         else this.#VID.pause();
                     else if (key === "Up" || key === "Down")
-                        if (e.shiftKey) this.#VID.playbackRate *= key === "Up" ? 4 / 3 : 0.75;
+                         if (e.shiftKey) this.#VID.playbackRate *= key === "Up" ? 4 / 3 : 0.75;
                         else pv = null;
                     else if (!e.shiftKey && (key === "PgUp" || key === "PgDn"))
-                        if (this.#VID.audio) this.#VID.currentTime += key === "PgDn" ? 4 : -4;
+                         if (this.#VID.audio) this.#VID.currentTime += key === "PgDn" ? 4 : -4;
                         else {
                             this.#VID.pause();
                             this.#VID.currentTime = (this.#VID.currentTime * 25 + (key === "PgDn" ? 1 : -1)) / 25 + 1e-5;
                         }
                     else pv = null;
                 }
-                if (!pv && this.#TRG.IMGS_album) {
+                 if (!pv && this.#TRG.IMGS_album) {
                     switch (key) {
-                        case "End":
+                         case "End":
                             if (e.shiftKey && (pv = prompt("#", this.#stack[this.#TRG.IMGS_album].search || "") || null))
-                                this.#stack[this.#TRG.IMGS_album].search = pv;
+                                 this.#stack[this.#TRG.IMGS_album].search = pv;
                             else pv = false;
                             break;
                         case "Home": pv = true; break;
                         case "Up":
-                        case "Down": pv = null; break;
+                         case "Down": pv = null; break;
                         default:
                             pv = ((key === "Space" && !e.shiftKey) || key === "Right" || key === "PgDn" ? 1 : -1) * (e.shiftKey && key !== "Space" ? 5 : 1);
                     }
                     if (pv !== null) {
-                        this.#album(pv, true);
+                         this.#album(pv, true);
                         pv = true;
                     }
                 }
-            } else if (key === cfg.keys.mOrig || key === cfg.keys.mFit || key === cfg.keys.mFitW || key === cfg.keys.mFitH) this.#resize(key);
+                 } else if (key === cfg.keys.mOrig || key === cfg.keys.mFit || key === cfg.keys.mFitW || key === cfg.keys.mFitH) this.#resize(key);
             else if (key === cfg.keys.hz_fullSpace) {
                 cfg.hz.fullspace = !cfg.hz.fullspace;
                 this.#show();
@@ -686,10 +691,10 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 if (this.#fullZm) this.handleMouseMove();
                 else this.#show();
             } else if (key === cfg.keys.hz_caption)
-                if (e.shiftKey) {
+                 if (e.shiftKey) {
                     this.#createCAP();
                     switch (this.#CAP.state) {
-                        case 0: key = cfg.hz.capWH || cfg.hz.capText ? 1 : 2; break;
+                         case 0: key = cfg.hz.capWH || cfg.hz.capText ? 1 : 2; break;
                         case 2: key = 0; break;
                         default: key = cfg.hz.capWH && cfg.hz.capText ? 0 : 2;
                     }
@@ -700,7 +705,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 } else {
                     if (this.#CAP) this.#CAP.style.whiteSpace = this.#CAP.style.whiteSpace === "nowrap" ? "normal" : "nowrap";
                 }
-            else if (key === cfg.keys.hz_history) {
+             else if (key === cfg.keys.hz_history) {
                 this.#handleHistoryKey(e.shiftKey);
             } else if (key === cfg.keys.send) {
                 if (this.#CNT === this.#IMG) this.#imageSendTo({ url: this.#CNT.src, nf: e.shiftKey });
@@ -721,16 +726,16 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#state === 0) return;
         
         // --- Scroller logic (from PVI.scroller) ---
-        if (this.#fullZm) {
+         if (this.#fullZm) {
             // Fall through to wheeler logic
         } else {
             if (!e.target.IMGS_) {
-                if (this.#lastScrollTRG && this.#lastScrollTRG !== e.target) this.#lastScrollTRG = false;
+                 if (this.#lastScrollTRG && this.#lastScrollTRG !== e.target) this.#lastScrollTRG = false;
                 else if (this.#lastScrollTRG !== false) this.#lastScrollTRG = e.target;
             }
         }
         
-        if (this.#freeze || this.#keyup_freeze_on) return;
+         if (this.#freeze || this.#keyup_freeze_on) return;
 
         if (!this.#fullZm) {
             if (this.#fireHide) this.handleMouseOver({ relatedTarget: this.#TRG });
@@ -753,10 +758,10 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (
             this.#TRG &&
             this.#TRG.IMGS_album &&
-            this.#settings.get('hz.pileWheel') &&
+             this.#settings.get('hz.pileWheel') &&
             (!this.#fullZm || (e.clientX < 50 && e.clientY < 50) || (this.#CAP && e.target === this.#CAP.firstChild))
         ) {
-            if (d !== null) {
+             if (d !== null) {
                 if (this.#settings.get('hz.pileWheel') === 2) {
                     if (!e.deltaX && !e.wheelDeltaX) return;
                     d = (e.deltaX || -e.wheelDeltaX) > 0;
@@ -767,10 +772,10 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         
-        if (this.#fullZm && this.#fullZm < 4) {
+             if (this.#fullZm && this.#fullZm < 4) {
             if (d !== null)
                 this.#resize(
-                    (e.deltaY || -e.wheelDelta) > 0 ? "-" : "+",
+                     (e.deltaY || -e.wheelDelta) > 0 ? "-" : "+",
                     this.#fullZm > 1 ? (e.target === this.#CNT ? [e.offsetX || e.layerX || 0, e.offsetY || e.layerY || 0] : []) : null
                 );
             stopEvent(e);
@@ -815,54 +820,54 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
             if (!d.cache && (d.m === true || d.params.rule.skip_resolve)) {
                 try {
-                    if (rule.res === 1 && typeof d.params.rule.req_res === "string") {
+                     if (rule.res === 1 && typeof d.params.rule.req_res === "string") {
                         rule.res = Function("$", d.params.rule.req_res);
                     }
-                    this.#imageResolver.setContextNode(trg); // Set context for .call()
+                     this.#imageResolver.setContextNode(trg); // Set context for .call()
                     d.m = rule.res.call(this.#imageResolver, d.params);
                 } catch (ex) {
-                    console.error(`${this.#settings.get('app.name')}: [rule ${d.params.rule.id}] ${ex.message}`);
+                     console.error(`${this.#settings.get('app.name')}: [rule ${d.params.rule.id}] ${ex.message}`);
                     if (!d.return_url && trg === this.#TRG) this.#show("R_js");
                     return 1;
                 }
                 if (d.params.url) d.params.url = d.params.url.join("");
                 if (this.#settings.get('tls.sieveCacheRes') && !d.params.rule.skip_resolve && d.m)
-                    this.#portService.send({ cmd: "resolve_cache", url: d.params.url, cache: JSON.stringify(d.m), rule_id: d.params.rule.id });
+                     this.#portService.send({ cmd: "resolve_cache", url: d.params.url, cache: JSON.stringify(d.m), rule_id: d.params.rule.id });
             }
             
-            if (d.m && !Array.isArray(d.m) && typeof d.m === "object") {
+             if (d.m && !Array.isArray(d.m) && typeof d.m === "object") {
                 if (d.m[""]) {
-                    if (typeof d.m.idx === "number") d.idx = d.m.idx + 1;
+                     if (typeof d.m.idx === "number") d.idx = d.m.idx + 1;
                     d.m = d.m[""];
                 } else if (typeof d.m.loop === "string") {
                     d.loop = true;
                     d.m = d.m.loop;
                 }
-            }
+             }
 
             if (Array.isArray(d.m)) {
                 if (d.m.length) {
-                    if (Array.isArray(d.m[0])) {
+                     if (Array.isArray(d.m[0])) {
                         d.m.forEach(function (el) {
-                            if (Array.isArray(el[0]) && el[0].length === 1) el[0] = el[0][0];
+                             if (Array.isArray(el[0]) && el[0].length === 1) el[0] = el[0][0];
                         });
                         if (d.m.length > 1) {
                             trg.IMGS_album = d.params.url;
                             if (this.#stack[d.params.url]) {
-                                d.m = this.#stack[d.params.url];
+                                 d.m = this.#stack[d.params.url];
                                 d.m = d.m[d.m[0]];
                             } else {
-                                this.#createCAP();
+                         this.#createCAP();
                                 d.idx = Math.max(1, Math.min(d.idx, d.m.length)) || 1;
                                 d.m.unshift(d.idx);
                                 this.#stack[d.params.url] = d.m;
                                 d.m = d.m[d.idx];
                                 d.idx += "";
                             }
-                        } else d.m = d.m[0];
+                         } else d.m = d.m[0];
                     }
                     if (this.#settings.get('hz.capText') && d.m[0]) {
-                        if (d.m[1]) this.#prepareCaption(trg, d.m[1]);
+                         if (d.m[1]) this.#prepareCaption(trg, d.m[1]);
                         else if (this.#settings.get('hz.capLinkText') && trg.IMGS_caption) d.m[1] = trg.IMGS_caption;
                     }
                     d.m = d.m[0];
@@ -871,6 +876,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
             if (d.m) {
                 if (!d.noloop && !trg.IMGS_album && typeof d.m === "string" && (d.loop || (rule.loop && rule.loop & (d.params.rule.loop_param === "img" ? 2 : 1)))) {
+ 
                     
                     const findResult = this.#imageResolver.find({ href: d.m, IMGS_TRG: trg });
                     d.m = this.#processFindResult(findResult, trg);
@@ -880,27 +886,27 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                         if (!d.return_url) this.#show("R_res");
                         return d.m;
                     }
-                }
+                 }
                 if (d.return_url) return d.m;
                 
                 if (trg === this.#TRG)
-                    if (trg.IMGS_album) this.#album(d.idx || "1");
+                     if (trg.IMGS_album) this.#album(d.idx || "1");
                     else this.#set(d.m);
                 else {
                     if (this.#settings.get('hz.preload') > 1 || this.#timers.preload) this.#_preload(d.m);
                     trg.IMGS_c_resolved = d.m;
                 }
-            } else if (d.return_url) {
+             } else if (d.return_url) {
                 delete this.#TRG.IMGS_c_resolved;
                 return d.m;
             } else if (trg === this.#TRG) {
-                if (trg.IMGS_fallback_zoom) {
+                 if (trg.IMGS_fallback_zoom) {
                     this.#set(trg.IMGS_fallback_zoom);
                     delete trg.IMGS_fallback_zoom;
                     return;
                 }
                 if (d.m === false) {
-                    this.handleMouseOver({ relatedTarget: trg });
+                     this.handleMouseOver({ relatedTarget: trg });
                     trg.IMGS_c = true;
                     delete trg.IMGS_c_resolved;
                 } else this.#show("R_res");
@@ -914,7 +920,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.toggle(true); // Disable
             this.#settings.update(d.prefs); // Update settings
             this.toggle(false); // Re-enable
-            if (e) this.#create();
+             if (e) this.#create();
         }
     }
 
@@ -934,7 +940,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
 
-        this.#create();
+         this.#create();
         this.#fireHide = true;
         this.#TRG = this.#HLP; // Use the helper as a dummy target
         this.#resetNode(this.#TRG);
@@ -944,14 +950,15 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
 
-        this.#x = this.#y = 0; // iFrame popups originate from corner
+         this.#x = this.#y = 0; // iFrame popups originate from corner
 
         if (typeof d.msg === "string") {
             this.#show(d.msg);
             return;
         }
 
-        if (!d.src) return;
+        
+ if (!d.src) return;
         
         this.#TRG.IMGS_caption = d.caption;
         if (d.album) {
@@ -960,7 +967,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             d.album = "" + this.#stack[d.album.id][0];
         }
         if (d.thumb && d.thumb[0]) {
-            this.#TRG.IMGS_thumb = d.thumb[0];
+             this.#TRG.IMGS_thumb = d.thumb[0];
             this.#TRG.IMGS_thumb_ok = d.thumb[1];
         }
         if (d.album) this.#album(d.album);
@@ -977,11 +984,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      */
     #processFindResult(result, trg) {
         if (!result) {
-            trg.IMGS_c = true; // Mark as non-viable
+             trg.IMGS_c = true; // Mark as non-viable
             return false;
         }
         if (result.error) {
-            trg.IMGS_c = true;
+             trg.IMGS_c = true;
             return 1; // Error code
         }
         
@@ -995,20 +1002,20 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             trg.IMGS_thumb_ok = result.thumbOk;
         }
         if (result.album) {
-            trg.IMGS_album = result.album;
+             trg.IMGS_album = result.album;
         }
         if (result.nohistory) {
             trg.IMGS_nohistory = true;
         }
         if (result.fallback) {
-            trg.IMGS_fallback_zoom = result.fallback;
+             trg.IMGS_fallback_zoom = result.fallback;
         }
 
         if (result.needsResolve) {
             // Returns null, which handleMouseOver checks
             return this.#resolve(result.url, result.resolveParams, trg);
         }
-        
+         
         return result.urls; // string or string[]
     }
     
@@ -1028,11 +1035,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      */
     #imageSendTo(sf) {
         if ((!sf.url && !sf.name) || (sf.url && !/^http/.test(sf.url))) {
-            alert("Invalid URL! (" + sf.url.slice(0, sf.url.indexOf(":") + 1));
+             alert("Invalid URL! (" + sf.url.slice(0, sf.url.indexOf(":") + 1));
             return;
         }
         let i = 0;
-        let urls = [];
+         let urls = [];
         let hosts = this.#settings.get('tls.sendToHosts');
         for (; i < hosts.length; ++i)
             if (sf.host === i || (sf.host === undefined && hosts[i][0][0] === "+"))
@@ -1055,7 +1062,8 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#win.parent.postMessage({ vdfDpshPtdhhd: "from_frame", msg: msg }, "*");
             return;
         }
-        if (!delayed && typeof msg === "string") {
+        
+ if (!delayed && typeof msg === "string") {
             this.#DIV.style.display = "none";
             this.#HD_cursor(true);
             this.#BOX = this.#LDR;
@@ -1067,32 +1075,32 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (ldrDelay > 20) {
                 clearTimeout(this.#timers.delayed_loader);
                 if (msg[0] !== "R" && this.#state !== 3 && !this.#fullZm) {
-                    this.#state = 3;
+                     this.#state = 3;
                     this.#LDR_msg = msg;
-                    this.#timers.delayed_loader = setTimeout(this.#delayed_loader.bind(this), ldrDelay);
+                     this.#timers.delayed_loader = setTimeout(this.#delayed_loader.bind(this), ldrDelay);
                     return;
                 }
-            }
+             }
         }
         
         let box;
         if (msg) {
-            if (this.#state === 2 && this.#settings.get('hz.waitHide')) return;
+             if (this.#state === 2 && this.#settings.get('hz.waitHide')) return;
             this.#updateViewportDimensions();
             if (this.#state < 3 || this.#LDR_msg) {
-                this.#LDR_msg = null;
+                 this.#LDR_msg = null;
                 this.#win.addEventListener("wheel", this.handleWheel.bind(this), { capture: true, passive: false });
             }
-            if (msg === true) {
+             if (msg === true) {
                 this.#BOX = this.#DIV;
                 this.#LDR.style.display = "none";
                 if (this.#settings.get('hz.LDRanimate')) this.#LDR.style.opacity = "0";
                 this.#CNT.style.display = "block";
                 (this.#CNT === this.#IMG ? this.#VID : this.#IMG).style.display = "none";
-                if (typeof this.#DIV.cursor_hide === "function") this.#DIV.cursor_hide();
+if (typeof this.#DIV.cursor_hide === "function") this.#DIV.cursor_hide();
             } else if (this.#state < 4) {
                 if (this.#anim.left || this.#anim.top) {
-                    this.#DIV.style.left = this.#x + "px";
+                     this.#DIV.style.left = this.#x + "px";
                     this.#DIV.style.top = this.#y + "px";
                 }
                 if (this.#anim.width || this.#anim.height) this.#DIV.style.width = this.#DIV.style.height = "0";
@@ -1101,9 +1109,9 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (
                 (this.#state < 3 || this.#BOX === this.#LDR) &&
                 box.display === "none" &&
-                (((this.#anim.left || this.#anim.top) && this.#BOX === this.#DIV) || (this.#settings.get('hz.LDRanimate') && this.#BOX === this.#LDR))
+                 (((this.#anim.left || this.#anim.top) && this.#BOX === this.#DIV) || (this.#settings.get('hz.LDRanimate') && this.#BOX === this.#LDR))
             )
-                this.#show(null);
+                 this.#show(null);
             box.display = "block";
             if (box.opacity === "0" && ((this.#BOX === this.#DIV && this.#anim.opacity) || (this.#BOX === this.#LDR && this.#settings.get('hz.LDRanimate'))))
                 if (this.#state === 2) this.#anim.opacityTransition();
@@ -1116,7 +1124,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         let left, top, rot, w, h, ratio;
 
         if ((msg === undefined && this.#state === 4) || msg === true) {
-            msg = false;
+             msg = false;
             if (this.#TRG.IMGS_SVG) {
                 h = this.#stack[this.#IMG.src];
                 w = h[0];
@@ -1128,23 +1136,24 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#fullZm) {
             if (!this.#BOX) this.#BOX = this.#LDR;
             if (msg === false) {
-                box = this.#DIV.style;
+                 box = this.#DIV.style;
                 box.visibility = "hidden";
                 this.#resize(0);
                 this.handleMouseMove(); // Will call m_move logic
                 box.visibility = "visible";
                 this.#updateCaption();
             } else this.handleMouseMove(); // Will call m_move logic
-            return;
+             return;
         }
 
         if (msg === false) {
             rot = this.#DIV.curdeg % 180 !== 0;
             if (rot) {
-                ratio = w; w = h; h = ratio;
+                 ratio = w; w = h; h = ratio;
             }
             if (this.#settings.get('hz.placement') === 3) {
-                box = this.#TBOX;
+                
+ box = this.#TBOX;
                 x = box.left; y = box.top;
                 rSide = this.#winW - box.right; bSide = this.#winH - box.bottom;
             }
@@ -1153,16 +1162,16 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             
             let fs = this.#settings.get('hz.fullspace') || this.#settings.get('hz.placement') === 2;
             let cap_size =
-                this.#CAP &&
+                 this.#CAP &&
                 this.#CAP.overhead &&
                 !(this.#DIV.curdeg % 360) &&
                 this.#CAP.state !== 0 &&
                 (this.#CAP.state === 2 || (this.#TRG.IMGS_caption && this.#settings.get('hz.capText')) || this.#TRG.IMGS_album || this.#settings.get('hz.capWH'))
-                    ? this.#CAP.overhead
+                     ? this.#CAP.overhead
                     : 0;
 
             let vH = box["wm"] + (rot ? box["hpb"] : box["wpb"]);
-            let hH = box["hm"] + (rot ? box["wpb"] : box["hpb"]) + cap_size;
+let hH = box["hm"] + (rot ? box["wpb"] : box["hpb"]) + cap_size;
             let vW = Math.min(w, (fs ? this.#winW : x < rSide ? rSide : x) - vH);
             let hW = Math.min(w, this.#winW - vH);
             vH = Math.min(h, this.#winH - hH);
@@ -1174,67 +1183,67 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             else hW = fs;
 
             if (hW > vW) {
-                w = Math.round(hW); h = Math.round(hH);
+                 w = Math.round(hW); h = Math.round(hH);
             } else {
                 w = Math.round(vW); h = Math.round(vH);
             }
 
-            vW = w + box["wm"] + (rot ? box["hpb"] : box["wpb"]);
+             vW = w + box["wm"] + (rot ? box["hpb"] : box["wpb"]);
             vH = h + box["hm"] + (rot ? box["wpb"] : box["hpb"]) + cap_size;
             hW = this.#TRG !== this.#HLP && this.#settings.get('hz.minPopupDistance');
 
             switch (this.#settings.get('hz.placement')) {
-                case 1:
+                 case 1:
                     hH = (x < rSide ? rSide : x) < vW;
                     if (hH && this.#settings.get('hz.fullspace') && (this.#winH - vH <= this.#winW - vW || vW <= (x < rSide ? rSide : x))) hH = false;
                     left = x - (hH ? vW / 2 : x < rSide ? 0 : vW);
                     top = y - (hH ? (y < bSide ? 0 : vH) : vH / 2);
                     break;
                 case 2:
-                    left = (this.#winW - vW) / 2;
+                     left = (this.#winW - vW) / 2;
                     top = (this.#winH - vH) / 2;
                     hW = false;
                     break;
                 case 3:
-                    left = x < rSide || (vW >= this.#x && this.#winW - this.#x >= vW) ? this.#TBOX.right : x - vW;
+                     left = x < rSide || (vW >= this.#x && this.#winW - this.#x >= vW) ? this.#TBOX.right : x - vW;
                     top = y < bSide || (vH >= this.#y && this.#winH - this.#y >= vH) ? this.#TBOX.bottom : y - vH;
                     hH = (x < rSide ? rSide : x) < vW || ((y < bSide ? bSide : y) >= vH && this.#winW >= vW && (this.#TBOX.width >= this.#winW / 2 || Math.abs(this.#x - left) >= this.#winW / 3.5));
                     if (!this.#settings.get('hz.fullspace') || (hH ? vH <= (y < bSide ? bSide : y) : vW <= (x < rSide ? rSide : x))) {
                         fs = this.#TBOX.width / this.#TBOX.height;
                         if (hH) {
-                            left = (this.#TBOX.left + this.#TBOX.right - vW) / 2;
+                             left = (this.#TBOX.left + this.#TBOX.right - vW) / 2;
                             if (fs > 10) left = x < rSide ? Math.max(left, this.#TBOX.left) : Math.min(left, this.#TBOX.right - vW);
                         } else {
-                            top = (this.#TBOX.top + this.#TBOX.bottom - vH) / 2;
+                             top = (this.#TBOX.top + this.#TBOX.bottom - vH) / 2;
                             if (fs < 0.1) top = y < bSide ? Math.min(top, this.#TBOX.top) : Math.min(top, this.#TBOX.bottom - vH);
                         }
                     }
                     break;
                 case 4:
-                    left = x - vW / 2;
+                     left = x - vW / 2;
                     top = y - vH / 2;
                     hW = false;
                     break;
                 default:
-                    hH = null;
+                     hH = null;
                     left = x - (x < rSide ? Math.max(0, vW - rSide) : vW);
                     top = y - (y < bSide ? Math.max(0, vH - bSide) : vH);
             }
             if (hW)
-                if (hH || (x < rSide ? rSide : x) < vW || this.#winH < vH) {
+                 if (hH || (x < rSide ? rSide : x) < vW || this.#winH < vH) {
                     hH = y < bSide ? box["mt"] : box["mb"];
                     if (hW > hH) {
                         hW -= hH;
                         top += y < bSide ? hW : -hW;
                     }
-                } else {
+                 } else {
                     hH = x < rSide ? box["ml"] : box["mr"];
                     if (hW > hH) {
-                        hW -= hH;
+                         hW -= hH;
                         left += x < rSide ? hW : -hW;
                     }
                 }
-            left = left < 0 ? 0 : left > this.#winW - vW ? this.#winW - vW : left;
+             left = left < 0 ? 0 : left > this.#winW - vW ? this.#winW - vW : left;
             top = top < 0 ? 0 : top > this.#winH - vH ? this.#winH - vH : top;
             if (cap_size && !this.#settings.get('hz.capPos')) top += cap_size;
             if (rot) {
@@ -1243,18 +1252,18 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 left += rot;
                 top -= rot;
             }
-            this.#DIV.style.width = w + "px";
+             this.#DIV.style.width = w + "px";
             this.#DIV.style.height = h + "px";
             this.#updateCaption();
         } else {
             if (this.#settings.get('hz.placement') === 1) {
-                left = this.#settings.get('hz.minPopupDistance');
+                 left = this.#settings.get('hz.minPopupDistance');
                 top = this.#LDR.wh[1] / 2;
             } else {
                 left = 13;
                 top = y < bSide ? -13 : this.#LDR.wh[1] + 13;
             }
-            left = x - (x < rSide ? -left : this.#LDR.wh[0] + left);
+             left = x - (x < rSide ? -left : this.#LDR.wh[0] + left);
             top = y - top;
         }
         if (left !== undefined) {
@@ -1269,7 +1278,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     #album(idx, manual) {
         let s, i;
         if (!this.#TRG || !this.#TRG.IMGS_album) return;
-        const album = this.#stack[this.#TRG.IMGS_album];
+const album = this.#stack[this.#TRG.IMGS_album];
         if (!album || album.length < 2) return;
         if (!this.#fullZm && this.#timers.no_anim_in_album) {
             clearInterval(this.#timers.no_anim_in_album);
@@ -1277,27 +1286,27 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#DIV.style.transition = "all 0s";
         }
         switch (typeof idx) {
-            case "boolean": idx = idx ? 1 : album.length - 1; break;
+             case "boolean": idx = idx ? 1 : album.length - 1; break;
             case "number": idx = album[0] + (idx || 0); break;
             default:
                 if (/^[+-]?\d+$/.test(idx)) {
-                    i = parseInt(idx, 10);
+                     i = parseInt(idx, 10);
                     idx = idx[0] === "+" || idx[0] === "-" ? album[0] + i : i || 1;
                 } else {
-                    idx = idx.trim();
+                     idx = idx.trim();
                     if (!idx) return;
                     idx = new RegExp(idx, "i");
                     s = album[0];
                     i = s + 1;
                     for (i = i < album.length ? i : 1; i !== s; ++i < album.length ? 0 : (i = 1))
                         if (album[i][1] && idx.test(album[i][1])) {
-                            idx = i;
+                             idx = i;
                             break;
                         }
                     if (typeof idx !== "number") return;
                 }
         }
-        if (this.#settings.get('hz.pileCycle')) {
+         if (this.#settings.get('hz.pileCycle')) {
             s = album.length - 1;
             idx = idx % s || s;
             idx = idx < 0 ? s + idx : idx;
@@ -1329,14 +1338,14 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             i = this.#TRG;
             this.#win.parent.postMessage(
                 {
-                    vdfDpshPtdhhd: "from_frame",
+                     vdfDpshPtdhhd: "from_frame",
                     src: src,
-                    thumb: i.IMGS_thumb ? [i.IMGS_thumb, i.IMGS_thumb_ok] : null,
+                     thumb: i.IMGS_thumb ? [i.IMGS_thumb, i.IMGS_thumb_ok] : null,
                     album: i.IMGS_album ? { id: i.IMGS_album, list: this.#stack[i.IMGS_album] } : null,
-                    caption: i.IMGS_caption,
+                     caption: i.IMGS_caption,
                 },
                 "*"
-            );
+             );
             return;
         }
         clearInterval(this.#timers.onReady);
@@ -1378,7 +1387,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#checkContentRediness(src);
             return;
         }
-        
+         
         if (/^[^?#]+\.(?:m(?:4[abprv]|p[34])|og[agv]|webm)(?:$|[?#])/.test(src) || /#(mp[34]|og[gv]|webm)$/.test(src)) {
             this.#CNT = this.#VID;
             this.#show("load");
@@ -1389,6 +1398,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         
+ 
         if (this.#CNT !== this.#IMG) {
             this.#CNT = this.#IMG;
             this.#VID.removeAttribute("src");
@@ -1396,7 +1406,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         }
         
         if (this.#settings.get('hz.thumbAsBG')) {
-            if (this.#interlacer) this.#interlacer.style.display = "none";
+             if (this.#interlacer) this.#interlacer.style.display = "none";
             this.#CNT.loaded = this.#TRG.IMGS_SVG || this.#stack[src] === 1;
         }
         
@@ -1410,15 +1420,15 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             svg.src = src;
             svg.counter = 0;
             this.#timers.onReady = setInterval(() => {
-                if (svg.width || svg.counter++ > 300) {
+                 if (svg.width || svg.counter++ > 300) {
                     const ratio = svg.width / svg.height;
-                    clearInterval(this.#timers.onReady);
+                     clearInterval(this.#timers.onReady);
                     this.#doc.body.removeChild(svg);
                     if (ratio) {
                         this.#stack[src] = [this.#win.screen.width, Math.round(this.#win.screen.width / ratio)];
-                        this.#IMG.src = src;
+                         this.#IMG.src = src;
                         this.#assign_src();
-                    } else this.#show("R_load");
+                     } else this.#show("R_load");
                 }
             }, 100);
             this.#doc.body.appendChild(svg);
@@ -1426,7 +1436,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         
-        this.#CNT.src = src;
+         this.#CNT.src = src;
         this.#checkContentRediness(src, true);
     }
     
@@ -1435,7 +1445,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      */
     #checkContentRediness(src, showLoader) {
         if (this.#CNT.naturalWidth || (this.#TRG.IMGS_SVG && this.#stack[src])) {
-            this.#assign_src();
+             this.#assign_src();
             return;
         }
         if (showLoader) this.#show("load");
@@ -1445,6 +1455,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     /**
      * Logic from PVI.content_onready
      */
+ 
     #content_onready() {
         if (!this.#CNT || !this.#fireHide) {
             clearInterval(this.#timers.onReady);
@@ -1452,7 +1463,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         if (this.#CNT === this.#VID) {
-            if (!this.#VID.duration) {
+             if (!this.#VID.duration) {
                 if (this.#VID.readyState > this.#VID.HAVE_NOTHING) this.#content_onerror.call(this.#VID);
                 return;
             }
@@ -1477,8 +1488,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     #content_onerror() {
         clearInterval(this.#timers.onReady);
         if (!this.#TRG || this !== this.#CNT) return;
-        
-        let src_left;
+let src_left;
         const t = this.#TRG;
         const src_res_arr = t.IMGS_c_resolved;
         const src = this.src;
@@ -1491,7 +1501,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         } while (src_left === src);
         
         if (!src_res_arr || !src_res_arr.length)
-            if (src_left) t.IMGS_c_resolved = src_left;
+             if (src_left) t.IMGS_c_resolved = src_left;
             else delete t.IMGS_c_resolved;
         
         if (src_left && !src_left.URL) this.#set(src_left);
@@ -1501,7 +1511,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             delete t.IMGS_HD;
             this.#set(src_left);
         } else if (t.IMGS_fallback_zoom) {
-            this.#set(t.IMGS_fallback_zoom);
+             this.#set(t.IMGS_fallback_zoom);
             delete t.IMGS_fallback_zoom;
         } else {
             if (this.#CAP) this.#CAP.style.display = "none";
@@ -1528,21 +1538,21 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (!this.#TRG || this.#switchToHiResInFZ()) return;
         
         if (this.#TRG.IMGS_album) {
-            delete this.#TRG.IMGS_thumb;
+             delete this.#TRG.IMGS_thumb;
             delete this.#TRG.IMGS_thumb_ok;
             if (this.#interlacer) this.#interlacer.style.display = "none";
         } else if (!this.#TRG.IMGS_SVG) {
             if (this.#TRG !== this.#HLP && this.#TRG.IMGS_thumb && !this.#imageResolver.isEnlargeable(this.#TRG, this.#IMG)) {
-                if (this.#TRG.IMGS_HD_stack && !this.#TRG.IMGS_HD) {
+                 if (this.#TRG.IMGS_HD_stack && !this.#TRG.IMGS_HD) {
                     this.#show("load");
                     this.handleKeyDown({ which: 9, preventDefault: () => {}, stopImmediatePropagation: () => {} });
                     return;
                 }
-                if (!this.#TRG.IMGS_fallback_zoom) {
+                 if (!this.#TRG.IMGS_fallback_zoom) {
                     this.#not_enlargeable();
                     return;
                 }
-                this.#TRG.IMGS_thumb = false;
+                 this.#TRG.IMGS_thumb = false;
             }
             if (this.#CNT === this.#IMG && !this.#IMG.loaded && this.#settings.get('hz.thumbAsBG') && this.#TRG.IMGS_thumb !== false && !this.#TRG.IMGS_album) {
                 let inner_thumb, w, h;
@@ -1550,15 +1560,15 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                     this.#TRG.IMGS_thumb = null;
                     if (this.#TRG.hasAttribute("src")) this.#TRG.IMGS_thumb = this.#TRG.src;
                     else if (this.#TRG.childElementCount) {
-                        inner_thumb = this.#TRG.querySelector("img[src]");
+                         inner_thumb = this.#TRG.querySelector("img[src]");
                         if (inner_thumb) this.#TRG.IMGS_thumb = inner_thumb.src;
                     }
                 }
-                if (this.#TRG.IMGS_thumb === this.#IMG.src) {
+                 if (this.#TRG.IMGS_thumb === this.#IMG.src) {
                     delete this.#TRG.IMGS_thumb;
                     delete this.#TRG.IMGS_thumb_ok;
                 } else if (this.#TRG.IMGS_thumb) {
-                    w = true;
+                     w = true;
                     if (!this.#TRG.IMGS_thumb_ok) {
                         w = (inner_thumb || this.#TRG).clientWidth;
                         h = (inner_thumb || this.#TRG).clientHeight;
@@ -1566,28 +1576,28 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                         w = w < 1024 && h < 1024 && w < this.#IMG.naturalWidth && h < this.#IMG.naturalHeight;
                     }
                     if (w && this.#TRG.IMGS_thumb_ok) {
-                        if (this.#interlacer) w = this.#interlacer.style;
+                         if (this.#interlacer) w = this.#interlacer.style;
                         else {
-                            this.#interlacer = this.#doc.createElement("div");
+                             this.#interlacer = this.#doc.createElement("div");
                             h = this.#interlacer;
                             if (this.#settings.get('hz.thumbAsBGOpacity') > 0) {
                                 w = parseInt(this.#settings.get('hz.thumbAsBGColor').slice(1), 16);
                                 h.appendChild(this.#doc.createElement("div")).style.cssText =
                                     "width: 100%; height: 100%; background-color: rgba(" +
-                                    (w >> 16) + "," + ((w >> 8) & 255) + "," + (w & 255) + "," +
-                                    parseFloat(this.#settings.get('hz.thumbAsBGOpacity')) + ")";
+                                     (w >> 16) + "," + ((w >> 8) & 255) + "," + (w & 255) + "," +
+                                     parseFloat(this.#settings.get('hz.thumbAsBGOpacity')) + ")";
                             }
-                            w = h.style;
+                             w = h.style;
                             w.cssText = "position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: 100% 100%; background-repeat: no-repeat";
                             this.#DIV.insertBefore(h, this.#IMG);
                         }
-                        w.backgroundImage = "url(" + this.#TRG.IMGS_thumb + ")";
+                         w.backgroundImage = "url(" + this.#TRG.IMGS_thumb + ")";
                         w.display = "block";
                     }
                     delete this.#TRG.IMGS_thumb;
                     delete this.#TRG.IMGS_thumb_ok;
                 }
-            }
+             }
         }
         delete this.#TRG.IMGS_c_resolved;
         this.#TRG.IMGS_c = this.#CNT.src;
@@ -1596,12 +1606,12 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         this.#HD_cursor(this.#TRG.IMGS_HD !== false);
         if (this.#settings.get('hz.history')) this.#handleHistoryKey(false);
         if (!this.#fullZm && this.#anim.maxDelay && this.#TRG.IMGS_album)
-            this.#timers.no_anim_in_album = setTimeout(() => {
+             this.#timers.no_anim_in_album = setTimeout(() => {
                 if (this.#DIV) this.#DIV.style.transition = this.#anim.css;
             }, 100);
     }
     
-    /**
+     /**
      * Logic from PVI.hide
      */
     #hide(e) {
@@ -1617,6 +1627,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             return;
         }
         
+         
         const animDIV = this.#BOX === this.#DIV && this.#anim.maxDelay;
         const animLDR = this.#BOX === this.#LDR && this.#settings.get('hz.LDRanimate');
         
@@ -1625,7 +1636,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#reset(false);
             return;
         }
-        
+         
         this.#state = 2;
         if (this.#CAP) {
             this.#HLP.textContent = "";
@@ -1665,7 +1676,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#anim.left || this.#anim.top) this.#DIV.style.left = this.#DIV.style.top = "auto";
         if (this.#anim.opacity) this.#DIV.style.opacity = "0";
         if (this.#settings.get('hz.LDRanimate')) {
-            this.#LDR.style.left = "auto";
+             this.#LDR.style.left = "auto";
             this.#LDR.style.top = "auto";
             this.#LDR.style.opacity = "0";
         }
@@ -1680,7 +1691,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#IMG.style.transform = "";
         }
         if (this.#VID.scale) {
-            delete this.#VID.scale;
+             delete this.#VID.scale;
             this.#VID.style.transform = "";
         }
         
@@ -1689,7 +1700,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         this.#HD_cursor(true);
         
         if (this.#fullZm) {
-            this.#fullZm = 0;
+             this.#fullZm = 0;
             this.#hideTime = null;
             if (this.#anim.maxDelay) this.#DIV.style.transition = this.#anim.css;
             this.#win.removeEventListener("click", this.#fzClickAct.bind(this), true);
@@ -1699,11 +1710,12 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         }
         
         if (preventImmediateHover) {
-            this.#lastScrollTRG = this.#TRG;
+             this.#lastScrollTRG = this.#TRG;
             // Manually trigger wheel logic to set freeze
             this.handleWheel({ target: this.#TRG, clientX: this.#x, clientY: this.#y });
         }
         
+ 
         this.#state = 1;
     }
     
@@ -1736,7 +1748,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (!mark) return;
         
         if (mark === "cr") {
-            this.#lastTRGStyle.cursor = this.#TRG.style.cursor;
+             this.#lastTRGStyle.cursor = this.#TRG.style.cursor;
             this.#TRG.style.cursor = "not-allowed";
             return;
         }
@@ -1748,6 +1760,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     /**
      * Logic from PVI.resize
      */
+ 
     #resize(x, xy_img) {
         if (this.#state !== 4 || !this.#fullZm) return;
         
@@ -1759,7 +1772,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (rot) s.reverse();
         
         if (x === k.mFit)
-            if (this.#winW / this.#winH < s[0] / s[1]) x = this.#winW > s[0] ? 0 : k.mFitW;
+             if (this.#winW / this.#winH < s[0] / s[1]) x = this.#winW > s[0] ? 0 : k.mFitW;
             else x = this.#winH > s[1] ? 0 : k.mFitH;
         
         switch (x) {
@@ -1770,37 +1783,38 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 if (this.#fullZm > 1) this.#y = 0;
                 break;
             case k.mFitH:
-                this.#winH -= this.#DBOX["hpb"];
+                 this.#winH -= this.#DBOX["hpb"];
                 s[0] *= this.#winH / s[1];
                 s[1] = this.#winH;
                 if (this.#fullZm > 1) this.#y = 0;
                 break;
             case "+":
             case "-":
-                let k_size = [parseInt(this.#DIV.style.width, 10), 0];
+                 let k_size = [parseInt(this.#DIV.style.width, 10), 0];
                 k_size[1] = (k_size[0] * s[rot ? 0 : 1]) / s[rot ? 1 : 0];
                 if (xy_img) {
                     if (xy_img[1] === undefined || rot) {
                         xy_img[0] = k_size[0] / 2;
                         xy_img[1] = k_size[1] / 2;
                     } else if (this.#DIV.curdeg % 360)
-                        if (!(this.#DIV.curdeg % 180)) {
+                         if (!(this.#DIV.curdeg % 180)) {
                             xy_img[0] = k_size[0] - xy_img[0];
-                            xy_img[1] = k_size[1] - xy_img[1];
+xy_img[1] = k_size[1] - xy_img[1];
                         }
                     xy_img[0] /= k_size[rot ? 1 : 0];
                     xy_img[1] /= k_size[rot ? 0 : 1];
                 }
-                x = x === "+" ? 4 / 3 : 0.75;
+                 x = x === "+" ? 4 / 3 : 0.75;
                 s[0] = x * Math.max(16, k_size[rot ? 1 : 0]);
                 s[1] = x * Math.max(16, k_size[rot ? 0 : 1]);
                 if (xy_img) {
-                    xy_img[0] *= k_size[rot ? 1 : 0] - s[0];
+                     xy_img[0] *= k_size[rot ? 1 : 0] - s[0];
                     xy_img[1] *= k_size[rot ? 0 : 1] - s[1];
                 }
         }
         
-        if (!xy_img) xy_img = [true, null];
+        
+ if (!xy_img) xy_img = [true, null];
         xy_img.push(s[rot ? 1 : 0], s[rot ? 0 : 1]);
         this.handleMouseMove(xy_img);
     }
@@ -1809,7 +1823,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      * Logic from PVI.switchToHiResInFZ
      */
     #switchToHiResInFZ() {
-        if (!this.#fullZm || !this.#TRG || this.#settings.get('hz.hiResOnFZ') < 1) return false;
+         if (!this.#fullZm || !this.#TRG || this.#settings.get('hz.hiResOnFZ') < 1) return false;
         if (this.#TRG.IMGS_HD !== false) return false;
         if (this.#IMG.naturalWidth < 800 && this.#IMG.naturalHeight < 800) return false;
         
@@ -1835,7 +1849,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     #fzClickAct(e) {
         if (e.button !== 0) return;
         if (this.#mdownstart === false) {
-            this.#mdownstart = null;
+             this.#mdownstart = null;
             stopEvent(e);
             return;
         }
@@ -1844,7 +1858,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         } else if (e.target === this.#VID)
             if ((e.offsetY || e.layerY || 0) < Math.min(this.#CNT.clientHeight - 40, (2 * this.#CNT.clientHeight) / 3)) this.#reset(true);
             else {
-                if ((e.offsetY || e.layerY || 0) < this.#CNT.clientHeight - 40 && (e.offsetY || e.layerY || 0) > (2 * this.#CNT.clientHeight) / 3)
+                 if ((e.offsetY || e.layerY || 0) < this.#CNT.clientHeight - 40 && (e.offsetY || e.layerY || 0) > (2 * this.#CNT.clientHeight) / 3)
                     if (this.#VID.paused) this.#VID.play();
                     else this.#VID.pause();
             }
@@ -1864,7 +1878,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         }
         if (this.#freeze === true) this.#freeze = !this.#settings.get('hz.deactivate');
         if (this.#lastScrollTRG !== e.target) {
-            this.#hideTime -= 1e3;
+             this.#hideTime -= 1e3;
             this.handleMouseOver(e);
         }
         this.#lastScrollTRG = null;
@@ -1874,7 +1888,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      * Logic from PVI.m_move_show
      */
     #m_move_show() {
-        if (this.#state > 2) this.#show();
+         if (this.#state > 2) this.#show();
         this.#timers.m_move = null;
     }
 
@@ -1883,7 +1897,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      */
     #_preload(srcs) {
         if (!Array.isArray(srcs)) {
-            if (typeof srcs !== "string") return;
+             if (typeof srcs !== "string") return;
             srcs = [srcs];
         }
         
@@ -1900,7 +1914,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                     isHDUrl = url[0] === "#";
                 }
             }
-            if (isHDUrl) url = url.slice(1);
+             if (isHDUrl) url = url.slice(1);
             if (url.indexOf("&amp;") !== -1) url = url.replace(/&amp;/g, "&");
             new Image().src = url[1] === "/" ? httpPrepend(url, null, pageProtocol) : url;
             return;
@@ -1949,7 +1963,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             this.#keyup_freeze_on = false;
             this.#win.removeEventListener("keyup", this.#keyup_freeze.bind(this), true);
         }
-    }
+     }
 
     /**
      * Logic from PVI.history, but only the part that calls the service
@@ -1959,7 +1973,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         
         let url;
         if (manual) {
-            this.#settings.all.hz.history = !this.#settings.get('hz.history');
+             this.#settings.all.hz.history = !this.#settings.get('hz.history');
             return;
         }
         if (this.#TRG.IMGS_nohistory) return;
@@ -1976,7 +1990,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             url = n.href;
             if (url && url.baseVal) url = url.baseVal;
             break;
-        } while (++i < 5 && (n = n.parentNode) && n.nodeType === 1);
+} while (++i < 5 && (n = n.parentNode) && n.nodeType === 1);
         
         if (url) {
             this.#historyService.add(url, manual, chrome.extension?.inIncognitoContext);
@@ -2001,20 +2015,20 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         let h;
         if (this.#TRG.IMGS_album)
             if (c.firstChild.style.display === "none" && (h = this.#stack[this.#TRG.IMGS_album]) && h[2]) {
-                h = c.firstChild.style;
+                 h = c.firstChild.style;
                 h.color = this.#palette.pile_fg;
                 h.backgroundColor = this.#palette.pile_bg;
                 h.display = "inline-block";
                 const flashCount = this.#settings.get('hz.capFlashCount');
                 if (flashCount) {
                     if (flashCount > 5) this.#settings.all.hz.capFlashCount = 5;
-                    clearTimeout(this.#timers.pile_flash);
+clearTimeout(this.#timers.pile_flash);
                     this.#timers.pile_flash = setTimeout(this.#flash_caption.bind(this), this.#anim.maxDelay);
                 }
             }
         
         if (this.#CNT !== this.#HLP) { // Was PVI.IFR
-            h = c.children[1];
+             h = c.children[1];
             if (this.#settings.get('hz.capWH') || c.state === 2) {
                 h.style.display = "inline-block";
                 h.style.color = this.#palette[this.#TRG.IMGS_HD === false ? "wh_fg_hd" : "wh_fg"];
@@ -2039,13 +2053,14 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         this.#timers.pile_flash = setInterval(this.#flick_caption.bind(this), 150);
     }
 
-    /**
+     /**
      * Logic from PVI.flick_caption
      */
     #flick_caption() {
         const flashCount = this.#settings.get('hz.capFlashCount');
         if (this.#timers.pileflicker++ >= flashCount * 2) {
-            this.#timers.pileflicker = null;
+            
+ this.#timers.pileflicker = null;
             clearInterval(this.#timers.pile_flash);
             return;
         }
@@ -2056,7 +2071,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     /**
      * Logic from PVI.resetNode
      */
-    #resetNode(node, keepAlbum) {
+     #resetNode(node, keepAlbum) {
         delete node.IMGS_c;
         delete node.IMGS_c_resolved;
         delete node.IMGS_thumb;
@@ -2070,9 +2085,9 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         
         const childNodes = node.querySelectorAll('img[src], :not(img)[style*="background-image"], b, i, u, strong, em, span, div');
         if (childNodes.length)
-            [].forEach.call(childNodes, (el) => {
+             [].forEach.call(childNodes, (el) => {
                 if (el.IMGS_c) this.#resetNode(el, false); // always reset album for children
-            });
+             });
     }
     
     /**
@@ -2080,11 +2095,11 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
      */
     #listen_attr_changes(node) {
         if (this.#mutObserver && node) {
-            try {
+             try {
                 this.#mutObserver.observe(node, this.#mutObserverConf);
             } catch (e) {
                 // Node might be in a different document or detached
-                console.warn("Failed to observe node:", e.message);
+                 console.warn("Failed to observe node:", e.message);
             }
         }
     }
@@ -2099,10 +2114,10 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         let notTRG = trg !== this.#TRG;
         if (notTRG && this.#TRG) {
             try {
-                if (trg.contains(this.#TRG) || this.#TRG.contains(trg)) {
+                 if (trg.contains(this.#TRG) || this.#TRG.contains(trg)) {
                     notTRG = false;
                 }
-            } catch(e) { /* node detached */ }
+             } catch(e) { /* node detached */ }
         }
         
         if (notTRG) {
@@ -2110,9 +2125,9 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                 const bgImage = trg.style.backgroundImage;
                 if ((!bgImage || m.oldValue.indexOf(bgImage.slice(5, -2)) !== -1) &&
                     m.oldValue &&
-                    m.oldValue.indexOf("opacity") === -1 &&
+                     m.oldValue.indexOf("opacity") === -1 &&
                     trg.style.cssText.indexOf("opacity") === -1
-                ) return;
+                 ) return;
             }
             this.#resetNode(trg);
             return;
@@ -2136,14 +2151,14 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         if (this.#DIV) return;
         
         let x, y, z, p;
-        this.#DIV = this.#doc.createElement("div");
+this.#DIV = this.#doc.createElement("div");
         this.#VID = this.#doc.createElement("video");
         this.#IMG = this.#doc.createElement("img");
         this.#LDR = this.#IMG.cloneNode(false);
         this.#CNT = this.#IMG; // Current content element (IMG or VID)
         
         // Mark elements as part of the UI
-        this.#DIV.IMGS_ = this.#DIV.IMGS_c = this.#LDR.IMGS_ = this.#LDR.IMGS_c = this.#VID.IMGS_ = this.#VID.IMGS_c = this.#IMG.IMGS_ = this.#IMG.IMGS_c = true;
+         this.#DIV.IMGS_ = this.#DIV.IMGS_c = this.#LDR.IMGS_ = this.#LDR.IMGS_c = this.#VID.IMGS_ = this.#VID.IMGS_c = this.#IMG.IMGS_ = this.#IMG.IMGS_c = true;
         
         this.#DIV.style.cssText =
             "margin: 0; padding: 0; " +
@@ -2157,9 +2172,9 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             e.currentTarget.removeEventListener("load", onLDRLoad, false);
             let x = e.currentTarget.style;
             e.currentTarget.wh = [
-                x.width ? parseInt(x.width, 10) : e.currentTarget.naturalWidth || e.currentTarget.wh[0],
+                 x.width ? parseInt(x.width, 10) : e.currentTarget.naturalWidth || e.currentTarget.wh[0],
                 x.height ? parseInt(x.height, 10) : e.currentTarget.naturalHeight || e.currentTarget.wh[1],
-            ];
+             ];
         };
         this.#LDR.addEventListener("load", onLDRLoad, false);
         
@@ -2169,7 +2184,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             (this.#settings.get('hz.LDRcss') ||
                 "padding: 5px; border-radius: 50% !important; box-shadow: 0px 0px 5px 1px #a6a6a6 !important; background-clip: padding-box; width: 38px; height: 38px") +
             "; position: fixed !important; z-index: 2147483647; display: none; left: auto; top: auto; right: auto; bottom: auto; margin: 0; box-sizing: border-box !important; " +
-            (this.#settings.get('hz.LDRanimate') ? "transition: background-color .5s, opacity .2s ease, top .15s ease-out, left .15s ease-out" : "");
+             (this.#settings.get('hz.LDRanimate') ? "transition: background-color .5s, opacity .2s ease, top .15s ease-out, left .15s ease-out" : "");
         this.#LDR.src =
             this.#settings.get('hz.LDRsrc') ||
             "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NSIgaGVpZ2h0PSI2NSIgdmlld0JveD0iMCAwIDY1IDY1Ij4KICA8c3R5bGU+CiAgICAubG9hZGVyIHsKICAgICAgd2lkdGg6IDY1cHg7CiAgICAgIGhlaWdodDogNjVweDsKICAgICAgcG9zaXRpb246IHJlbGF0aXZlOwogICAgfQogICAgLmxvYWRlcjpiZWZvcmUsCiAgICAubG9hZGVyOmFmdGVyIHsKICAgICAgY29udGVudDogIiI7CiAgICAgIHBvc2l0aW9uOiBhYnNvbHV0ZTsKICAgICAgYm9yZGVyLXJhZGl1czogNTBweDsKICAgICAgYm94LXNoYWRvdzogaW5zZXQgMCAwIDAgM3B4ICNmZmY7CiAgICAgIGFuaW1hdGlvbjogbDQgMi41cyBpbmZpbml0ZTsKICAgIH0KICAgIC5sb2FkZXI6YWZ0ZXIgewogICAgICBhbmltYXRpb24tZGVsYXk6IC0xLjI1czsKICAgIH0KICAgIEBrZXlmcmFtZXMgbDQgewogICAgICAwJSB7IGluc2V0OiAwIDM1cHggMzVweCAwOyB9CiAgICAgIDEyLjUlIHsgaW5zZXQ6IDAgMzVweCAwIDA7IH0KICAgICAgMjUlIHsgaW5zZXQ6IDM1cHggMzVweCAwIDA7IH0KICAgICAgMzcuNSUgeyBpbnNldDogMzVweCAwIDAgMDsgfQogICAgICA1MCUgeyBpbnNldDogMzVweCAwIDAgMzVweDsgfQogICAgICA2Mi41JSB7IGluc2V0OiAwIDAgMCAzNXB4OyB9CiAgICAgIDc1JSB7IGluc2V0OiAwIDAgMzVweCAzNXB4OyB9CiAgICAgIDg3LjUlIHsgaW5zZXQ6IDAgMCAzNXB4IDA7IH0KICAgICAgMTAwJSB7IGluc2V0OiAwIDM1cHggMzVweCAwOyB9CiAgICB9CiAgPC9zdHlsZT4KICA8Zm9yZWlnbk9iamVjdCB3aWR0aD0iNjUiIGhlaWdodD0iNjUiPgogICAgPGRpdiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94aHRtbCIgY2xhc3M9ImxvYWRlciI+PC9kaXY+CiAgPC9mb3JlaWduT2JqZWN0Pgo8L3N2Zz4=";
@@ -2195,29 +2210,29 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         
         const hideIdleCursor = this.#settings.get('hz.hideIdleCursor');
         if (hideIdleCursor >= 50) {
-            this.#DIV.cursor_hide = () => {
+             this.#DIV.cursor_hide = () => {
                 this.#CNT.style.cursor = "none";
                 this.#timers.cursor_hide = null;
             };
             this.#DIV.addEventListener("mousemove", (e) => {
-                if (e.target !== this.#CNT || (this.#CNT === this.#VID && this.#VID.clientHeight - 35 < (e.offsetY || e.layerY || 0))) {
+                 if (e.target !== this.#CNT || (this.#CNT === this.#VID && this.#VID.clientHeight - 35 < (e.offsetY || e.layerY || 0))) {
                     clearTimeout(this.#timers.cursor_hide);
-                    return;
+                     return;
                 }
                 if (this.#timers.cursor_hide) clearTimeout(this.#timers.cursor_hide);
-                else this.#CNT.style.cursor = "";
+                 else this.#CNT.style.cursor = "";
                 this.#timers.cursor_hide = setTimeout(this.#DIV.cursor_hide, hideIdleCursor);
             });
             this.#DIV.addEventListener("mouseout", (e) => {
                 if (e.target !== this.#CNT) return;
                 clearTimeout(this.#timers.cursor_hide);
-                this.#CNT.style.cursor = "";
+                 this.#CNT.style.cursor = "";
             }, false);
         } else if (hideIdleCursor >= 0) this.#IMG.style.cursor = "none";
         
         this.#DIV.addEventListener("dragstart", (e) => {
             stopEvent(e, false);
-        }, true);
+         }, true);
         
         x = this.#doc.documentElement;
         x.appendChild(this.#DIV);
@@ -2235,15 +2250,16 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (z[1] === "t" || z[1] === "b") {
                 p = z[1] + (z[0] === "p" ? "p" : "bm");
                 this.#DBOX[p] = (this.#DBOX[p] || 0) + parseInt(x[y[z]], 10);
-            }
+}
             p = (z[1] === "l" || z[1] === "r" ? "w" : "h") + (z[0] === "m" ? "m" : "pb");
             this.#DBOX[p] = (this.#DBOX[p] || 0) + parseInt(x[y[z]], 10);
         }
         
+ 
         this.#anim = {
             maxDelay: 0,
             opacityTransition: () => {
-                this.#BOX.style.opacity = this.#BOX.opacity || "1";
+                 this.#BOX.style.opacity = this.#BOX.opacity || "1";
             },
         };
         y = "transition";
@@ -2256,20 +2272,21 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
                     val = parseFloat(p[1][idx]) * 1e3;
                 if (val > 0 && idx > -1) {
                     this.#anim[el] = val;
-                    if (val > this.#anim.maxDelay) this.#anim.maxDelay = val;
+                     if (val > this.#anim.maxDelay) this.#anim.maxDelay = val;
                     if (el === "opacity" && x.opacity) this.#DIV.opacity = "" + Math.max(0.01, x.opacity);
                 }
             });
         }
         
-        if (this.#settings.get('hz.capText') || this.#settings.get('hz.capWH')) this.#createCAP();
+        
+ if (this.#settings.get('hz.capText') || this.#settings.get('hz.capWH')) this.#createCAP();
         
         if (this.#doc.querySelector("embed, object")) {
             this.#DIV.insertBefore(this.#doc.createElement("iframe"), this.#DIV.firstElementChild);
             this.#DIV.firstChild.style.cssText = "z-index: -1; width: 100%; height: 100%; position: absolute; left: 0; top: 0; border: 0";
         }
         
-        this.#reset(false);
+         this.#reset(false);
     }
     
     /**
@@ -2280,7 +2297,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         this.#CAP = this.#doc.createElement("div");
         
         buildNodes(this.#CAP, [
-            { tag: "b", attrs: { style: "display: none; transition: background-color .1s; border-radius: 3px; padding: 0 2px" } },
+             { tag: "b", attrs: { style: "display: none; transition: background-color .1s; border-radius: 3px; padding: 0 2px" } },
             " ",
             { tag: "b", attrs: { style: "display: " + (this.#settings.get('hz.capWH') ? "inline-block" : "none") } },
             " ",
@@ -2300,13 +2317,13 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         this.#palette.wh_fg_hd = e ? "rgb(255, 0, 0)" : "rgb(120, 210, 255)";
         
         this.#CAP.style.cssText =
-            "left:0; right:auto; display:block; cursor:default; position:absolute; width:auto; height:auto; border:0; white-space: " +
+             "left:0; right:auto; display:block; cursor:default; position:absolute; width:auto; height:auto; border:0; white-space: " +
             (this.#settings.get('hz.capWrapByDef') ? "pre-line" : "nowrap") +
             '; font:13px/1.4em "Trebuchet MS",sans-serif; background:rgba(' +
             (e ? "255,255,255,.95" : "0,0,0,.75") +
             ") !important; color:#" +
             (e ? "000" : "fff") +
-            " !important; box-shadow: 0 0 1px #" +
+             " !important; box-shadow: 0 0 1px #" +
             (e ? "666" : "ddd") +
             " inset; padding:0 4px; border-radius: 3px";
         
@@ -2320,24 +2337,26 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     /**
      * Logic from PVI.resolve
      */
-    #resolve(URL, params, trg, nowait) {
+        #resolve(URL, params, trg, nowait) {
         if (!trg || trg.IMGS_c) return false;
-        if (trg.IMGS_c_resolved && typeof trg.IMGS_c_resolved.URL !== "string") return false;
+        
+        // --- FIX: Check if IMGS_c_resolved exists and is an object before accessing .URL ---
+        if (trg.IMGS_c_resolved && (typeof trg.IMGS_c_resolved !== "object" || trg.IMGS_c_resolved.URL === undefined)) return false;
         
         URL = stripHash(URL);
         if (this.#stack[URL]) {
-            trg.IMGS_album = URL;
+             trg.IMGS_album = URL;
             URL = this.#stack[URL];
             return URL[URL[0]][0]; // Return first image of album
         }
 
         if (this.#settings.get(`sieve.${params.rule.id}.res`) === 1) {
             params.rule.req_res = true;
-        } else if (params.rule.skip_resolve) {
+} else if (params.rule.skip_resolve) {
             if (typeof this.#settings.get(`sieve.${params.rule.id}.res`) === "function") {
                 params.url = [URL];
                 // This is a synchronous JS-based resolve
-                return this.handleMessage({ cmd: "resolved", id: -1, m: false, return_url: true, params: params });
+                 return this.handleMessage({ cmd: "resolved", id: -1, m: false, return_url: true, params: params });
             } else delete params.rule.skip_resolve;
         }
 
@@ -2352,12 +2371,12 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         
         this.#timers.resolver = setTimeout(() => {
             this.#timers.resolver = null;
-            const id = this.#resolving.push(trg) - 1;
+             const id = this.#resolving.push(trg) - 1;
             this.#portService.send({ cmd: "resolve", url: URL, params: params, id: id });
         }, resolve_delay || (nowait ? 50 : Math.max(50, cfg.hz.delay)));
         
         return null; // Indicates async
-    }
+     }
 
     /**
      * Logic from PVI.load
@@ -2365,14 +2384,14 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
     #load(src) {
         const cfg = this.#settings.all;
         if ((cfg.hz.waitHide || !cfg.hz.deactivate) && this.#anim.maxDelay && !this.#iFrame) {
-            this.#win.addEventListener("mousemove", this.handleMouseMove.bind(this), true);
+             this.#win.addEventListener("mousemove", this.handleMouseMove.bind(this), true);
         }
         if (!this.#TRG) return;
         
         if (src === undefined) {
             src = (cfg.hz.delayOnIdle && this.#TRG.IMGS_c_resolved) || this.#SRC;
         }
-        if (this.#SRC !== undefined) this.#SRC = undefined;
+         if (this.#SRC !== undefined) this.#SRC = undefined;
 
         this.#TBOX = (this.#TRG.IMGS_overflowParent || this.#TRG).getBoundingClientRect();
         this.#TBOX.Left = this.#TBOX.left + this.#win.pageXOffset;
@@ -2391,7 +2410,8 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
 
         if (src === null || (src && src.params) || src === false) {
             if (src === false || (src && (src = this.#resolve(src.URL, src.params, this.#TRG)) === 1)) {
-                this.#create();
+                
+ this.#create();
                 this.#show("R_js");
                 return;
             }
@@ -2402,7 +2422,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
             if (src === null) {
                 if (this.#state < 4 || !this.#TRG.IMGS_c) {
                     if (this.#state > 3) this.#IMG.removeAttribute("src");
-                    this.#create();
+this.#create();
                     this.#show("res");
                 }
                 return;
@@ -2410,7 +2430,7 @@ constructor(win, doc, settings, portService, historyService, imageResolver) {
         }
         
         if (this.#TRG.IMGS_album) {
-            this.#createCAP();
+             this.#createCAP();
             this.#album("" + this.#stack[this.#TRG.IMGS_album][0]);
             return;
         }

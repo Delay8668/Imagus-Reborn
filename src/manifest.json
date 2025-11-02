@@ -1,6 +1,5 @@
 {
-	"manifest_version": 3,
-
+	"manifest_version": 2,
 	"name": "Imagus Reborn",
 	"version": "0.9.9.9",
 	"description": "__MSG_APP_DESCRIPTION__",
@@ -11,60 +10,53 @@
 		"128": "common/img/icon.png"
 	},
 
-	"action": {
+	"browser_action": {
 	},
 
-"permissions": [
-        "downloads",
-        "history",
-        "storage",
-        "userScripts" 
-    ],
-	"host_permissions": [
+	"permissions": [
+		"downloads",
+		"history",
+		"storage",
 		"*://*/*"
 	],
 
 	"incognito": "split",
 
-    "background": {
-        "service_worker": "background/service.js",
-        "type": "module"
-    },
+	"background": {
+		"scripts": ["background/service.js"],
+		"persistent": false
+	},
 
 	"options_ui": {
 		"page": "options/options.html",
 		"open_in_tab": true
 	},
 	"content_scripts": [{
-  "matches": ["<all_urls>"],
-  "js": ["main.js"],
-  "run_at": "document_idle"
-}],
+		"matches": ["<all_urls>"],
+		"js": ["main.js"],
+		"run_at": "document_idle",
+		"all_frames": true
+	}],
     "web_accessible_resources": [
-        {
-            "resources": [
-                "main.js",
-                "app/EventListenerService.js",
-                "app/PopupController.js",
-                "core/ImageResolver.js",
-                "core/Settings.js",
-                "infra/HistoryService.js",
-                "infra/PortService.js",
-                "utils/DOMUtils.js",
-                "utils/SecurityUtils.js",
-                "utils/UrlUtils.js",
-                "utils/KeyUtils.js",
-                "options/options.js",
-                "options/SieveUI.js",
-                "options/options-utils.js",
-                "options/ImprtHandler.js"
-            ],
-            "matches": ["*://*/*"]
-        }
+        "main.js",
+        "app/EventListenerService.js",
+        "app/PopupController.js",
+        "core/ImageResolver.js",
+        "core/Settings.js",
+        "infra/HistoryService.js",
+        "infra/PortService.js",
+        "utils/DOMUtils.js",
+        "utils/SecurityUtils.js",
+        "utils/UrlUtils.js",
+        "utils/KeyUtils.js",
+        "options/options.js",
+        "options/SieveUI.js",
+        "options-utils.js",
+        "ImprtHandler.js"
     ],
 	   "browser_specific_settings": {
         "gecko": {
           "id": "swosmi36@outlook.com"
         }
-      }
+       }
 }

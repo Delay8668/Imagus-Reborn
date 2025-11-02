@@ -41,6 +41,7 @@ function onInitMouseMove(e) {
  * @param {object} config
  */
 function initialize(config) {
+    
     console.log('[Imagus] Initialize called with config:', config);
     
     // Remove the init listener NOW that we're initializing
@@ -58,7 +59,7 @@ function initialize(config) {
     imageResolver = new ImageResolver(settings);
     console.log('[Imagus] Services initialized');
     
-    // (Old settings.update(config) [cite: 1101] is no longer needed as it's passed to constructor)
+    // (Old settings.update(config) is no longer needed as it's passed to constructor)
 
     // Initialize controller
     controller = new PopupController(
@@ -133,18 +134,30 @@ win.addEventListener('message', function(event) {
         }
     }
 }, true);
-
 // --- Request Settings from Background ---
 console.log('[Imagus] Sending hello request to background');
 portService.send({ cmd: 'hello' }).then(response => {
     console.log('[Imagus] Received response from background:', response);
     
     // --- START: MOVED AND FIXED LOGIC ---
-    // FIX: Check response.prefs, not config
+    // Check for valid config
     if (!response || !response.prefs || !response.prefs.hz) {
         console.error('[Imagus] Invalid config received, missing hz settings', response);
+        win.removeEventListener('mousemove', onInitMouseMove, true);
         return;
     }
+
+    // --- FIX: Add "Always On + No Trigger" disable check ---
+    // If "deactivate" mode is OFF (meaning "Always on") but the trigger is "None",
+    // the script would be stuck on. The old code disabled it, so we do too.
+    if (!response.prefs.hz.deactivate && response.prefs.hz.actTrigger === "0") {
+        console.warn('[Imagus] Conflicting config: "Always on" mode with "None" trigger. Shutting down.');
+        win.removeEventListener('mousemove', onInitMouseMove, true);
+        return;
+    }
+    
+    // Add the dynamic key needed by the controller
+    response.prefs.hz._freezeTriggerEventKey = response.prefs.hz.actTrigger.toLowerCase() + "Key";
 
     if (response && response.cmd === 'hello') {
         console.log('[Imagus] Hello message received, initializing...');
@@ -167,10 +180,10 @@ portService.send({ cmd: 'hello' }).then(response => {
 
 }).catch(error => {
     console.error('[Imagus] Error sending hello:', error);
+    win.removeEventListener('mousemove', onInitMouseMove, true);
 });
 
 // --- Start Listening for Mouse Movement ---
 console.log('[Imagus] Adding mousemove listener');
 win.addEventListener('mousemove', onInitMouseMove, true);
-
 console.log('[Imagus] Content script setup complete');

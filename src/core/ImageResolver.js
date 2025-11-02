@@ -16,6 +16,24 @@ export class ImageResolver {
     // Context for 'toFunction' execution
     #node = null; 
     
+    // --- ADD THIS GETTER ---
+    /**
+     * Public alias for the context node.
+     * Sieve rules (from legacy code) expect `this.TRG` to be the target element.
+     */
+    get TRG() {
+        return this.#node;
+    }
+
+    /**
+     * Legacy alias for the context node.
+     * Old Sieve rules use `this.node`.
+     */
+    get node() {
+        return this.#node;
+    }
+    // --- END ADDITION ---
+
     // Regexes
     #rgxIsSVG = /\.svgz?$/i;
     #pageProtocol = '';
@@ -33,7 +51,7 @@ export class ImageResolver {
      * Sets the execution context (window, document) for the resolver.
      */
     setContext(win, doc, helperA) {
-        this.#win = win;
+         this.#win = win;
         this.#doc = doc;
         this.#HLP = helperA;
         
@@ -71,21 +89,21 @@ export class ImageResolver {
      * Main function to find the image URL for a given target element.
      * This is a refactor of the massive PVI.find()
      * @param {HTMLElement} trg - The target element.
-     * @param {number} x - Mouse X coordinate.
+ * @param {number} x - Mouse X coordinate.
      * @param {number} y - Mouse Y coordinate.
      * @returns {object|null} A result object, or null for no match.
      * { error: 1 } for a rule compile error.
      */
     find(trg, x, y) {
-        let i = 0,
+         let i = 0,
             n = trg,
             ret = false,
             URL,
-            rule,
+             rule,
             imgs,
             use_img,
             tmp_el,
-            attrModNode;
+             attrModNode;
             
         do {
             if (n.nodeType !== undefined)
@@ -96,66 +114,67 @@ export class ImageResolver {
                 if (n.href === "") attrModNode = n; // Listen for changes
                 break;
             }
-            if (n instanceof this.#win.HTMLElement) {
+             if (n instanceof this.#win.HTMLElement) {
                 if (n.childElementCount && n.querySelector("iframe, object, embed")) break;
                 if (typeof x === "number" && typeof y === "number") {
-                    tmp_el = this.#doc.elementsFromPoint(x, y);
+                     tmp_el = this.#doc.elementsFromPoint(x, y);
                     for (i = 0; i < 5; ++i) {
-                        if (tmp_el[i] === this.#doc.body) break;
+                         if (tmp_el[i] === this.#doc.body) break;
                         if (!tmp_el[i].currentSrc && tmp_el[i].style.backgroundImage.lastIndexOf("url(", 0) !== 0) continue;
                         var elRect = tmp_el[i].getBoundingClientRect();
-                        if (x >= elRect.left && x < elRect.right && y >= elRect.top && y < elRect.bottom) {
-                            var trgRect = trg.getBoundingClientRect();
+                         if (x >= elRect.left && x < elRect.right && y >= elRect.top && y < elRect.bottom) {
+                             var trgRect = trg.getBoundingClientRect();
                             if (
-                                trgRect.left - 10 <= elRect.left &&
-                                trgRect.right + 10 >= elRect.right &&
+                                 trgRect.left - 10 <= elRect.left &&
+                                 trgRect.right + 10 >= elRect.right &&
                                 trgRect.top - 10 <= elRect.top &&
                                 trgRect.bottom + 10 >= elRect.bottom
-                            )
+                             )
                                 imgs = this.getImages(tmp_el[i], true);
                         }
-                        break;
+                        
+ break;
                     }
                 }
-                if (tmp_el) tmp_el = null;
+                 if (tmp_el) tmp_el = null;
                 attrModNode = n;
             } else {
-                if (n.getAttributeNS) {
+                 if (n.getAttributeNS) {
                     tmp_el = n.getAttributeNS("http://www.w3.org/1999/xlink", "href");
                     if (!tmp_el) continue;
                     n = { href: tmp_el };
                 }
-                n.href = normalizeURL(n.href, this.#HLP, this.#pageProtocol);
+                 n.href = normalizeURL(n.href, this.#HLP, this.#pageProtocol);
             }
             URL = n.href.replace(rgxHTTPs, "");
             if (imgs && (URL === imgs.imgSRC || URL === imgs.imgBG)) break;
             
             const sieve = this.#settings.get('sieve');
             for (i = 0; (rule = sieve[i]); ++i) {
-                if (!(rule.link && rule.link.test(URL))) {
+                 if (!(rule.link && rule.link.test(URL))) {
                     if (!rule.img) continue;
                     tmp_el = rule.img.test(URL);
                     if (tmp_el) use_img = true;
-                    else continue;
+ else continue;
                 }
                 if (rule.useimg && rule.img) {
                     if (!imgs) imgs = this.getImages(trg);
                     if (imgs) {
-                        if (imgs.imgSRC && rule.img.test(imgs.imgSRC)) {
-                            use_img = [i, false];
+                         if (imgs.imgSRC && rule.img.test(imgs.imgSRC)) {
+                             use_img = [i, false];
                             break;
                         }
                         if (imgs.imgBG) {
-                            use_img = rule.img.test(imgs.imgBG);
+                             use_img = rule.img.test(imgs.imgBG);
                             if (use_img) {
-                                use_img = [i, use_img];
+                                 use_img = [i, use_img];
                                 break;
                             }
                         }
-                    }
+                     }
                 }
                 if (rule.res && (!tmp_el || (!rule.to && rule.url))) {
-                    if (this.#win.location.href.replace(rgxHash, "") === n.href.replace(rgxHash, "")) break;
+                     if (this.#win.location.href.replace(rgxHash, "") === n.href.replace(rgxHash, "")) break;
                     if (this.#toFunction(rule, "url", true) === false) return { error: 1 };
                     if (typeof rule.url === "function") this.#node = trg;
                     ret = rule.url ? URL.replace(rule[tmp_el ? "img" : "link"], rule.url) : URL;
@@ -163,78 +182,78 @@ export class ImageResolver {
                     // Needs async resolve
                     return {
                         needsResolve: true,
-                        url: httpPrepend(ret || URL, n.href.slice(0, n.href.length - URL.length), this.#pageProtocol),
-                        resolveParams: {
+                         url: httpPrepend(ret || URL, n.href.slice(0, n.href.length - URL.length), this.#pageProtocol),
+                         resolveParams: {
                             rule: { id: i },
-                            $: [n.href].concat((URL.match(rule[tmp_el ? "img" : "link"]) || []).slice(1)),
+                             $: [n.href].concat((URL.match(rule[tmp_el ? "img" : "link"]) || []).slice(1)),
                             loop_param: tmp_el ? "img" : "link",
                             skip_resolve: ret === "",
-                        },
+                         },
                         attrModNode: attrModNode
-                    };
+                     };
                 } else ret = this.#replace(rule, URL, n.href, tmp_el ? "img" : "link", trg);
                 
                 if (ret === 1) return { error: 1 };
                 else if (ret === 2) ret = false;
                 if (
-                    typeof ret === "string" &&
+                     typeof ret === "string" &&
                     n !== trg &&
-                    trg.attributes.src?.value?.replace(/^https?:\/\//, "") === ret.replace(/^#?(https?:)?\/\//, "")
+                     trg.attributes.src?.value?.replace(/^https?:\/\//, "") === ret.replace(/^#?(https?:)?\/\//, "")
                 )
                     ret = false;
                 break;
             }
-            break;
+             break;
         } while (++i < 5 && (n = n.parentNode));
         
         if (!ret && ret !== null) {
             imgs = this.getImages(trg) || imgs;
             if (imgs && (imgs.imgSRC || imgs.imgBG)) {
-                if (typeof use_img === "object") {
+                 if (typeof use_img === "object") {
                     i = use_img[0];
                     use_img[0] = true;
                 } else {
-                    i = 0;
+                     i = 0;
                     use_img = [];
                 }
                 const sieve = this.#settings.get('sieve');
                 for (; (rule = sieve[i]); ++i)
-                    if (
+                     if (
                         use_img[0] ||
-                        (rule.img && ((imgs.imgSRC && rule.img.test(imgs.imgSRC)) || (imgs.imgBG && (use_img[1] = rule.img.test(imgs.imgBG)))))
+                         (rule.img && ((imgs.imgSRC && rule.img.test(imgs.imgSRC)) || (imgs.imgBG && (use_img[1] = rule.img.test(imgs.imgBG)))))
                     ) {
-                        if (!use_img[1] && imgs.imgSRC) {
-                            use_img = 1;
+                         if (!use_img[1] && imgs.imgSRC) {
+                             use_img = 1;
                             URL = imgs.imgSRC;
                             imgs = imgs.imgSRC_o;
                         } else {
                             use_img = 2;
                             URL = imgs.imgBG;
-                            imgs = imgs.imgBG_o;
+ imgs = imgs.imgBG_o;
                         }
                         if (!rule.to && rule.res && rule.url) {
-                            if (this.#toFunction(rule, "url", true) === false) return { error: 1 };
+                             if (this.#toFunction(rule, "url", true) === false) return { error: 1 };
                             if (typeof rule.url === "function") this.#node = trg;
                             ret = URL.replace(rule.img, rule.url);
                             
                             // Needs async resolve
-                            return {
+                             return {
                                 needsResolve: true,
-                                url: httpPrepend(ret, imgs.slice(0, imgs.length - URL.length), this.#pageProtocol),
-                                resolveParams: { 
-                                    rule: { id: i }, 
+                                 url: httpPrepend(ret, imgs.slice(0, imgs.length - URL.length), this.#pageProtocol),
+                                 resolveParams: { 
+                                     rule: { id: i }, 
                                     $: [imgs].concat((URL.match(rule.img) || []).slice(1)), 
                                     loop_param: "img", 
-                                    skip_resolve: ret === "" 
-                                },
+                                     skip_resolve: ret === "" 
+                                 },
                                 target: trg.IMGS_TRG || trg,
-                                attrModNode: attrModNode
-                            };
+                                 attrModNode: attrModNode
+                             };
                         } else ret = this.#replace(rule, URL, imgs, "img", trg);
                         
                         if (ret === 1) return { error: 1 };
                         else if (ret === 2) return null; // Was false, means no match
-                        if (trg.nodeType === 1) {
+                         if (trg.nodeType === 1) {
                             attrModNode = trg;
                             if (this.#settings.get('hz.history')) trg.IMGS_nohistory = true;
                         }
@@ -242,7 +261,7 @@ export class ImageResolver {
                     }
             }
         }
-        
+         
         if (rule && rule.loop && typeof ret === "string" && rule.loop & (use_img ? 2 : 1)) {
             if ((trg.nodeType !== 1 && ret === trg.href) || trg.IMGS_loop_count > 5) return null;
             rule = ret;
@@ -250,30 +269,30 @@ export class ImageResolver {
             ret = this.find({ href: ret, IMGS_TRG: trg.IMGS_TRG || trg, IMGS_loop_count: 1 + (trg.IMGS_loop_count || 0) });
             
             // Handle recursive result
-            if (ret && ret.urls) { // Success
+             if (ret && ret.urls) { // Success
                 ret.urls = Array.isArray(ret.urls) ? ret.urls.concat(rule) : [ret.urls, rule];
                 return ret;
             } else if (ret === null) { // Async
-                ret = rule; // Fallback to current rule
+                 ret = rule; // Fallback to current rule
             } else { // No match or error
-                ret = rule;
+                 ret = rule;
             }
         }
         
         if (tmp_el === true) trg.IMGS_fallback_zoom = n.href;
         
         if (ret && (typeof ret === "string" || Array.isArray(ret))) {
-            URL = /^https?:\/\//;
+             URL = /^https?:\/\//;
             URL = [
                 n && n.href && n.href.replace(URL, ""),
                 trg.nodeType === 1 && trg.src && trg.hasAttribute("src") && (trg.currentSrc || trg.src).replace(URL, ""),
             ];
             if (typeof ret === "string") ret = [ret];
             for (i = 0; i < ret.length; ++i) {
-                var url = ret[i].replace(/^#?(https?:)?\/\//, "");
+                 var url = ret[i].replace(/^#?(https?:)?\/\//, "");
                 if (URL[1] === url) {
                     if (ret[i][0] === "#") {
-                        use_img = ret = false;
+                         use_img = ret = false;
                         break;
                     }
                 } else if (URL[0] === url) continue;
@@ -282,7 +301,7 @@ export class ImageResolver {
             }
             if (!ret.length)
                 if (trg.IMGS_fallback_zoom) {
-                    ret = trg.IMGS_fallback_zoom;
+                     ret = trg.IMGS_fallback_zoom;
                     delete trg.IMGS_fallback_zoom;
                 } else ret = false;
             else if (ret.length === 1) ret = ret[0][0] === "#" ? ret[0].slice(1) : ret[0];
@@ -293,7 +312,7 @@ export class ImageResolver {
         }
 
         imgFallbackCheck: if (trg.localName === "img" && trg.hasAttribute("src")) {
-            if (ret)
+             if (ret)
                 if (ret === (trg.currentSrc || trg.src) && (!n || !n.href || n !== trg)) use_img = ret = false;
                 else if (typeof use_img === "number") use_img = 3;
             if (this.#rgxIsSVG.test(trg.currentSrc || trg.src)) break imgFallbackCheck;
@@ -303,26 +322,26 @@ export class ImageResolver {
             
             rule = { naturalWidth: trg.naturalWidth, naturalHeight: trg.naturalHeight, src: null };
             for (i = 0; i < tmp_el.length; ++i) {
-                URL = tmp_el[i]
+                 URL = tmp_el[i]
                     .getAttribute("srcset")
                     .trim()
-                    .split(/,\s+/);
+                     .split(/,\s+/);
                 var j = URL.length;
                 while (j--) {
                     var srcItem = URL[j].trim().split(/\s+/);
                     if (srcItem.length !== 2) continue;
-                    var descriptor = srcItem[1].slice(-1);
+ var descriptor = srcItem[1].slice(-1);
                     if (descriptor === "x") srcItem[1] = trg.naturalWidth * srcItem[1].slice(0, -1);
                     else if (descriptor === "w") srcItem[1] = parseInt(srcItem[1], 10);
                     else continue;
                     if (srcItem[1] > rule.naturalWidth) {
-                        rule.naturalWidth = srcItem[1];
+                         rule.naturalWidth = srcItem[1];
                         this.#HLP.href = srcItem[0];
                         rule.src = this.#HLP.href;
                     }
                 }
             }
-            if (rule.src) rule.naturalHeight *= rule.naturalWidth / trg.naturalWidth;
+             if (rule.src) rule.naturalHeight *= rule.naturalWidth / trg.naturalWidth;
             if (rule.src && this.isEnlargeable(trg, rule)) rule = rule.src;
             else if (this.isEnlargeable(trg)) rule = trg.currentSrc || trg.src;
             else rule = null;
@@ -330,24 +349,24 @@ export class ImageResolver {
             var oParent = trg;
             i = 0;
             do {
-                if (oParent === this.#doc.body || oParent.nodeType !== 1) break;
+                 if (oParent === this.#doc.body || oParent.nodeType !== 1) break;
                 tmp_el = this.#win.getComputedStyle(oParent);
                 if (tmp_el.position === "fixed") break;
                 if (i === 0) continue;
                 if (tmp_el.overflowY === "visible" && tmp_el.overflowX === "visible") continue;
                 switch (tmp_el.display) {
-                    case "block": case "inline-block": case "flex":
+                     case "block": case "inline-block": case "flex":
                     case "inline-flex": case "list-item": case "table-caption":
-                        break;
+                         break;
                     default:
                         continue;
                 }
-                if (rule) {
+                 if (rule) {
                     if (typeof rule !== "string") rule = null;
                     trg.IMGS_overflowParent = oParent;
                     break;
                 }
-                if (oParent.offsetWidth <= 32 || oParent.offsetHeight <= 32) continue;
+                 if (oParent.offsetWidth <= 32 || oParent.offsetHeight <= 32) continue;
                 if (!this.isEnlargeable(oParent, trg, true)) continue;
                 rule = trg.currentSrc || trg.src;
                 trg.IMGS_fallback_zoom = trg.IMGS_fallback_zoom ? [trg.IMGS_fallback_zoom, rule] : rule;
@@ -359,18 +378,18 @@ export class ImageResolver {
             if (typeof ret === "object") { // Array
                 if (trg.IMGS_fallback_zoom !== rule) trg.IMGS_fallback_zoom = trg.IMGS_fallback_zoom ? [trg.IMGS_fallback_zoom, rule] : rule;
             } else if (ret) {
-                if (ret !== rule) ret = [ret, rule];
+                 if (ret !== rule) ret = [ret, rule];
             } else {
                 ret = rule;
                 if (this.#settings.get('hz.history')) trg.IMGS_nohistory = true;
             }
         }
-        
+         
         if (!ret && ret !== null) {
             // No match
             return null;
         }
-        
+         
         if (use_img && imgs) {
             if (use_img === 2) trg.IMGS_thumb_ok = true;
             trg.IMGS_thumb = imgs;
@@ -395,15 +414,15 @@ export class ImageResolver {
             // else PVI.prepareCaption(trg, trg.IMGS_caption); // This is now done in PopupController
 
         // Success
-        return {
+         return {
             urls: ret,
             caption: trg.IMGS_caption,
             thumb: trg.IMGS_thumb,
-            thumbOk: trg.IMGS_thumb_ok,
+             thumbOk: trg.IMGS_thumb_ok,
             album: trg.IMGS_album,
             nohistory: trg.IMGS_nohistory,
             fallback: trg.IMGS_fallback_zoom,
-            attrModNode: attrModNode
+             attrModNode: attrModNode
         };
     }
 
@@ -427,7 +446,7 @@ export class ImageResolver {
             return img ? img.src : null;
         }
         if (nname === "VIDEO") {
-            const canvas = this.#doc.createElement("canvas");
+             const canvas = this.#doc.createElement("canvas");
             canvas.width = node.clientWidth;
             canvas.height = node.clientHeight;
             canvas.getContext("2d").drawImage(node, 0, 0, canvas.width, canvas.height);
@@ -447,12 +466,12 @@ export class ImageResolver {
             const matches = imgs.match(/\burl\(([^'"\)][^\)]*|"[^"\\]+(?:\\.[^"\\]*)*|'[^'\\]+(?:\\.[^'\\]*)*)(?=['"]?\))/g);
             if (Array.isArray(matches)) {
                 let i = matches.length;
-                while (i--) {
+                 while (i--) {
                     matches[i] = matches[i].slice(/'|"/.test(matches[i][4]) ? 5 : 4);
                 }
                 return matches;
             }
-        }
+         }
         return null;
     }
 
@@ -466,45 +485,45 @@ export class ImageResolver {
         const isHTMLElement = el && el instanceof this.#win.HTMLElement;
         if (isHTMLElement)
             if (el.childElementCount > 0 && el.childElementCount < 3) {
-                imgs = el.firstElementChild;
+                 imgs = el.firstElementChild;
                 if (imgs.childElementCount && imgs.childElementCount < 4)
                     if (imgs.firstElementChild.localName === "img") imgs = imgs.firstElementChild;
                     else if (imgs.lastElementChild.localName === "img") imgs = imgs.lastElementChild;
                 if (imgs.src && !/\S/.test(el.textContent) && el.offsetWidth - imgs.offsetWidth < 25 && el.offsetHeight - imgs.offsetHeight < 25) el = imgs;
             } else if (
                 !el.childElementCount &&
-                el.parentNode.childElementCount <= 5 &&
+                 el.parentNode.childElementCount <= 5 &&
                 (el.localName === "img"
-                    ? el.src.lastIndexOf("data:", 0) === 0 || el.naturalWidth < 3 || el.naturalHeight < 3 || el.style.opacity === "0"
+                     ? el.src.lastIndexOf("data:", 0) === 0 || el.naturalWidth < 3 || el.naturalHeight < 3 || el.style.opacity === "0"
                     : !/\S/.test(el.textContent)) &&
-                el.style.backgroundImage[0] !== "u"
+                 el.style.backgroundImage[0] !== "u"
             ) {
                 p = el.previousElementSibling;
                 [p && p.previousElementSibling, p, el.nextElementSibling].some((sib) => {
-                    if (
+                     if (
                         sib &&
-                        sib.localName === "img" &&
+                         sib.localName === "img" &&
                         sib.offsetParent === el.offsetParent &&
-                        Math.abs(sib.offsetLeft - el.offsetLeft) <= 10 &&
+                         Math.abs(sib.offsetLeft - el.offsetLeft) <= 10 &&
                         Math.abs(sib.offsetTop - el.offsetTop) <= 10 &&
                         Math.abs(sib.clientWidth - el.clientWidth) <= 30 &&
-                        Math.abs(sib.clientHeight - el.clientHeight) <= 30
+                         Math.abs(sib.clientHeight - el.clientHeight) <= 30
                     ) {
-                        el = sib;
+                         el = sib;
                         return true;
-                    }
+                     }
                 });
             }
 
         imgs = { imgSRC_o: el.currentSrc || el.src || el.data || null };
         if (!imgs.imgSRC_o && el.localName === "image") {
-            imgs.imgSRC_o = el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+             imgs.imgSRC_o = el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
             if (imgs.imgSRC_o) imgs.imgSRC_o = normalizeURL(imgs.imgSRC_o, this.#HLP, this.#pageProtocol);
             else delete imgs.imgSRC_o;
         }
         if (imgs.imgSRC_o) {
             if (!isHTMLElement) imgs.imgSRC_o = normalizeURL(imgs.imgSRC_o, this.#HLP, this.#pageProtocol);
-            else if ((el.naturalWidth > 0 && el.naturalWidth < 3) || (el.naturalHeight > 0 && el.naturalHeight < 3)) imgs.imgSRC_o = null;
+ else if ((el.naturalWidth > 0 && el.naturalWidth < 3) || (el.naturalHeight > 0 && el.naturalHeight < 3)) imgs.imgSRC_o = null;
             if (imgs.imgSRC_o) imgs.imgSRC = imgs.imgSRC_o.replace(rgxHTTPs, "");
         }
         if (!isHTMLElement) return imgs.imgSRC ? imgs : null;
@@ -513,16 +532,16 @@ export class ImageResolver {
             p = el.parentNode;
             if (p.offsetParent === el.offsetParent && p.style && p.style.backgroundImage[0] === "u")
                 if (
-                    Math.abs(p.offsetLeft - el.offsetLeft) <= 10 &&
+                     Math.abs(p.offsetLeft - el.offsetLeft) <= 10 &&
                     Math.abs(p.offsetTop - el.offsetTop) <= 10 &&
-                    Math.abs(p.clientWidth - el.clientWidth) <= 30 &&
+                     Math.abs(p.clientWidth - el.clientWidth) <= 30 &&
                     Math.abs(p.clientHeight - el.clientHeight) <= 30
-                )
+                 )
                     imgs.imgBG_o = p.style.backgroundImage;
         }
         if (!imgs.imgBG_o) return imgs.imgSRC ? imgs : null;
         imgs.imgBG_o = imgs.imgBG_o.match(/\burl\(([^'"\)][^\)]*|"[^"\\]+(?:\\.[^"\\]*)*|'[^'\\]+(?:\\.[^'\\]*)*)(?=['"]?\))/g);
-        if (!imgs.imgBG_o || imgs.imgBG_o.length !== 1) return imgs.imgSRC ? imgs : null;
+         if (!imgs.imgBG_o || imgs.imgBG_o.length !== 1) return imgs.imgSRC ? imgs : null;
         el = imgs.imgBG_o[0];
         imgs.imgBG_o = normalizeURL(el.slice(/'|"/.test(el[4]) ? 5 : 4), this.#HLP, this.#pageProtocol);
         imgs.imgBG = imgs.imgBG_o.replace(rgxHTTPs, "");
@@ -577,9 +596,9 @@ export class ImageResolver {
         
         if (prefix.test(code)) {
             try {
-                rule[param] = Function("var $ = arguments; " + (inline ? "return " : "") + code.slice(1)).bind(this);
+                 rule[param] = Function("var $ = arguments; " + (inline ? "return " : "") + code.slice(1)).bind(this);
             } catch (ex) {
-                console.error(`${this.#settings.get('app.name')}: ${param} - ${ex.message}`);
+                 console.error(`${this.#settings.get('app.name')}: ${param} - ${ex.message}`);
                 return false;
             }
         }
@@ -601,11 +620,11 @@ export class ImageResolver {
                 r = r.trim().split(/[\n\r]+/g);
                 ret = [];
                 for (i = 0; i < r.length; ++i) {
-                    if (i > 0) r[i] = prefixSuffix[0] + r[i];
+                     if (i > 0) r[i] = prefixSuffix[0] + r[i];
                     if (i !== r.length - 1) r[i] += prefixSuffix[1];
                     r[i] = this.#_replace(rule, r[i], http, param, "", trg);
                     if (Array.isArray(r[i])) ret = ret.concat(r[i]);
-                    else ret.push(r[i]);
+ else ret.push(r[i]);
                 }
                 return ret.length > 1 ? ret : ret[0];
             }
@@ -621,13 +640,13 @@ export class ImageResolver {
         } else ret = false;
         if (ret) {
             if (r[0] === "#") {
-                r = r.slice(1);
+                 r = r.slice(1);
                 addr = "#";
             } else addr = "";
             for (i = 0; i < ret.length; ++i) ret[i] = addr + r.replace("#", ret[i]);
             r = ret.length > 1 ? ret : ret[0];
         }
-        return r;
+         return r;
     }
 
     /**
@@ -641,7 +660,7 @@ export class ImageResolver {
         if (Array.isArray(rule.to)) {
             ret = [];
             for (i = 0; i < rule.to.length; ++i) {
-                j = this.#_replace(rule, addr, http, param, rule.to[i], trg);
+                 j = this.#_replace(rule, addr, http, param, rule.to[i], trg);
                 if (Array.isArray(j)) ret = ret.concat(j);
                 else ret.push(j);
             }

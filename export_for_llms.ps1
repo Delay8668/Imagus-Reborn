@@ -1,12 +1,12 @@
 param(
     [string]$Root = "C:\Users\winha\Documents\Imagus-Reborn",
-    [string]$OutFile = "C:\Users\winha\Documents\Imagus-Reborn\llm_export.txt",
+    [string]$OutFile = "C:\Users\winha\Documents\Imagus-Reborn\new_code.txt",
     [int]$MaxBytes = 1MB
 )
 
 # Exclusions
 $excludeDirs = @("node_modules","build", ".git", "data", "_locales", "dist", "old")
-$excludeFiles = @("content.js","app.js", "export_for_llms.ps1", "llm_export.txt", "LLM_AGENT_OVERVIEW.md", "package.json", "package-lock.json", ".gitignore")
+$excludeFiles = @("new_code.txt","old_code.txt","llm_export_new.txt","app.js", "export_for_llms.ps1", "llm_export.txt", "LLM_AGENT_OVERVIEW.md", "package.json", "package-lock.json", ".gitignore")
 
 # Prepare output
 if (Test-Path $OutFile) { Remove-Item $OutFile -Force }
