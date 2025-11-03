@@ -608,4 +608,46 @@ if (chrome.runtime.onUserScriptMessage) {
     chrome.runtime.onUserScriptMessage.addListener(onMessage);
 }
 
+const ICONS = {
+    idle: { "24": "common/img/logo_on_24x24.ico", "64": "common/img/logo_on_64x64.ico", "128": "common/img/logo_on_128x128.ico" },
+    disabled: { "24": "common/img/logo_off_24x24.ico", "64": "common/img/logo_off_64x64.ico", "128": "common/img/logo_off_128x128.ico" }
+};
+
+function setExtensionIcon(state = "idle", tabId) {
+    const path = ICONS[state] || ICONS.idle;
+
+    try {
+        // unified reference (chrome.action || chrome.browserAction)
+        if (extensionAction && typeof extensionAction.setIcon === "function") {
+            extensionAction.setIcon(tabId ? { tabId, path } : { path });
+            return;
+        }
+
+        // fallback to browser namespace (Firefox)
+        if (typeof browser !== "undefined" && browser.browserAction && typeof browser.browserAction.setIcon === "function") {
+            browser.browserAction.setIcon(tabId ? { tabId, path } : { path });
+            return;
+        }
+
+        console.warn("setExtensionIcon: no extension action API available");
+    } catch (err) {
+        console.error("setExtensionIcon failed with path object, trying fallback", err);
+
+        // try a single-file fallback (take the first value from the map)
+        try {
+            const fallback = typeof path === "object" ? Object.values(path)[0] : path;
+            if (extensionAction && typeof extensionAction.setIcon === "function") {
+                extensionAction.setIcon(tabId ? { tabId, path: fallback } : { path: fallback });
+                return;
+            }
+            if (typeof browser !== "undefined" && browser.browserAction && typeof browser.browserAction.setIcon === "function") {
+                browser.browserAction.setIcon(tabId ? { tabId, path: fallback } : { path: fallback });
+                return;
+            }
+        } catch (err2) {
+            console.error("setExtensionIcon fallback also failed", err2);
+        }
+    }
+}
+
 keepAlive();

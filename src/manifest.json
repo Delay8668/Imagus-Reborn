@@ -8,11 +8,15 @@
 	"homepage_url": "https://www.reddit.com/r/Imagus",
 
 	"icons": {
-		"128": "common/img/icon.png"
+		"128": "common/img/logo_on_128x128.ico",
+		"96": "common/img/logo_on_96x96.ico",
+		"64": "common/img/logo_on_64x64.ico",
+		"24": "common/img/logo_on_24x24.ico"
 	},
 
 	"browser_action": {
-		"default_icon": "common/img/icon-18.png"
+		"default_icon": "common/img/logo_on_24x24.ico",
+		"default_title": "Imagus Reborn"
 	},
 
 	"permissions": [
