@@ -1,41 +1,153 @@
 "use strict";
 
 var manifest = chrome.runtime.getManifest();
+var extensionAction = chrome.action || chrome.browserAction;
+var userScripts = chrome.userScripts || (typeof browser !== "undefined" ? browser.userScripts : null);
 var cachedSieveRes = [],
     cachedPrefs = {};
 
+var storageLocal = null;
+var storageLocalIsPromiseBased = false;
+if (chrome.storage?.local) {
+    storageLocal = chrome.storage.local;
+} else if (typeof browser !== "undefined" && browser.storage?.local) {
+    storageLocal = browser.storage.local;
+    storageLocalIsPromiseBased = true;
+}
+
+function wrapStorageCall(method, args) {
+    if (!storageLocal?.[method]) {
+        return Promise.reject(new Error("storage.local API is unavailable"));
+    }
+
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const handleResult = (result) => {
+            if (settled) return;
+            settled = true;
+            const runtimeError = chrome.runtime?.lastError;
+            if (runtimeError) {
+                reject(runtimeError);
+            } else {
+                resolve(result ?? {});
+            }
+        };
+
+        try {
+            const maybePromise = storageLocalIsPromiseBased
+                ? storageLocal[method](...args)
+                : storageLocal[method](...args, handleResult);
+
+            if (maybePromise && typeof maybePromise.then === "function") {
+                maybePromise.then(
+                    (result) => handleResult(result),
+                    (error) => {
+                        if (settled) return;
+                        settled = true;
+                        reject(error);
+                    }
+                );
+            } else if (storageLocalIsPromiseBased) {
+                handleResult(maybePromise);
+            }
+        } catch (error) {
+            if (settled) return;
+            settled = true;
+            reject(error);
+        }
+    });
+}
+
+var memorySession = (() => {
+    const store = {};
+    const clone = (input) => (input === undefined ? undefined : JSON.parse(JSON.stringify(input)));
+    const extract = (keys) => {
+        if (keys == null) return clone(store);
+        const result = {};
+        if (Array.isArray(keys)) {
+            keys.forEach((key) => {
+                if (key in store) result[key] = store[key];
+            });
+        } else if (typeof keys === "object") {
+            Object.keys(keys).forEach((key) => {
+                if (key in store) result[key] = store[key];
+                else if (keys[key] !== undefined) result[key] = keys[key];
+            });
+        } else if (typeof keys === "string") {
+            if (keys in store) result[keys] = store[keys];
+        }
+        return clone(result);
+    };
+    return {
+        async get(keys) {
+            return extract(keys);
+        },
+        async set(items) {
+            Object.keys(items).forEach((key) => {
+                store[key] = items[key];
+            });
+        },
+        async remove(keys) {
+            const list = Array.isArray(keys)
+                ? keys
+                : typeof keys === "object" && keys !== null
+                ? Object.keys(keys)
+                : [keys];
+            list.forEach((key) => {
+                delete store[key];
+            });
+        },
+    };
+})();
+
 var cfg = {
     sessionGet: (keys, callback) => {
-        return callback ? chrome.storage.session.get(keys, callback) : chrome.storage.session.get(keys);
+        if (chrome.storage.session) {
+            return callback ? chrome.storage.session.get(keys, callback) : chrome.storage.session.get(keys);
+        }
+        const promise = memorySession.get(keys);
+        if (callback) promise.then(callback);
+        return promise;
     },
-    sessionSet: (items) => {
-        return chrome.storage.session.set(items);
+    sessionSet: (items, callback) => {
+        if (chrome.storage.session) {
+            return chrome.storage.session.set(items, callback);
+        }
+        const promise = memorySession.set(items);
+        if (callback) promise.then(callback);
+        return promise;
     },
-    sessionRemove: (keys) => {
-        return chrome.storage.session.remove(keys);
+    sessionRemove: (keys, callback) => {
+        if (chrome.storage.session) {
+            return chrome.storage.session.remove(keys, callback);
+        }
+        const promise = memorySession.remove(keys);
+        if (callback) promise.then(callback);
+        return promise;
     },
     async get(keys, callback) {
-        const items = await chrome.storage.local.get(keys);
-        for (var key in items) {
+        const items = await wrapStorageCall("get", [keys]);
+        const normalized = items && typeof items === "object" ? { ...items } : {};
+        for (var key in normalized) {
             try {
-                if (!items[key]) throw new Error();
-                items[key] = JSON.parse(items[key]);
+                if (!normalized[key]) throw new Error();
+                normalized[key] = JSON.parse(normalized[key]);
             } catch (error) {
-                delete items[key];
+                delete normalized[key];
             }
         }
-        callback?.(items);
-        return items;
+        callback?.(normalized);
+        return normalized;
     },
     async set(items, callback) {
         for (var key in items) {
             items[key] = JSON.stringify(items[key]);
         }
-        await chrome.storage.local.set(items);
+        await wrapStorageCall("set", [items]);
         callback?.();
     },
     remove(keys) {
-        return chrome.storage.local.remove(keys);
+        return wrapStorageCall("remove", [keys]);
     },
 };
 
@@ -55,7 +167,7 @@ async function updateSieve(local, callback) {
     local = local || !sieveRepoUrl;
 
     try {
-        const response = await fetch(local ? "/data/sieve.json" : sieveRepoUrl);
+        const response = await fetch(local ? chrome.runtime.getURL("data/sieve.json") : sieveRepoUrl);
         if (!response.ok) {
             throw new Error("HTTP " + response.status);
         }
@@ -144,7 +256,7 @@ function cacheSieve(newSieve) {
 async function updatePrefs(prefs, callback) {
     prefs = prefs || {};
 
-    let defaults = await (await fetch("/data/defaults.json")).json();
+    let defaults = await (await fetch(chrome.runtime.getURL("data/defaults.json"))).json();
     let storedPrefs = await cfg.get(Object.keys(defaults));
     let newPrefs = {};
     let changes = {};
@@ -230,6 +342,7 @@ function onMessage(message, sender, sendResponse) {
 
     switch (msg.cmd) {
         case "hello": {
+            if (!context?.postMessage) break;
             let blocked = false;
             let response = {
                 hz: cachedPrefs.hz,
@@ -250,6 +363,7 @@ function onMessage(message, sender, sendResponse) {
             break;
         }
         case "cfg_get":
+            if (!context?.postMessage) break;
             if (!Array.isArray(msg.keys)) {
                 msg.keys = [msg.keys];
             }
@@ -264,19 +378,28 @@ function onMessage(message, sender, sendResponse) {
             cfg.remove(msg.keys);
             break;
         case "getLocaleList":
-            fetch("/data/locales.json")
+            if (!context?.postMessage) break;
+            fetch(chrome.runtime.getURL("data/locales.json"))
                 .then((resp) => resp.text())
                 .then(function (resp) {
                     context.postMessage(resp);
                 });
             break;
         case "savePrefs":
-            updatePrefs(msg.prefs, context.postMessage);
+            if (context?.postMessage) {
+                updatePrefs(msg.prefs, context.postMessage);
+            } else {
+                updatePrefs(msg.prefs);
+            }
             break;
         case "update_sieve":
-            updateSieve(msg.local, function (data) {
-                context.postMessage(data);
-            });
+            if (context?.postMessage) {
+                updateSieve(msg.local, function (data) {
+                    context.postMessage(data);
+                });
+            } else {
+                updateSieve(msg.local);
+            }
             break;
         case "loadScripts":
             registerContentScripts();
@@ -320,6 +443,7 @@ function onMessage(message, sender, sendResponse) {
             });
             break;
         case "resolve": {
+            if (!context?.postMessage) break;
             const data = {
                 cmd: "resolved",
                 id: msg.id,
@@ -418,49 +542,70 @@ function onMessage(message, sender, sendResponse) {
 }
 
 function keepAlive() {
-    // keep the service worker alive
-    setInterval(chrome.runtime.getPlatformInfo, 25_000);
+    // no-op interval for MV3 builds; harmless for persistent backgrounds
+    if (chrome.runtime.getPlatformInfo.length) {
+        setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 25_000);
+    } else {
+        setInterval(chrome.runtime.getPlatformInfo, 25_000);
+    }
 }
 
 function registerContentScripts() {
+    if (!userScripts) {
+        console.warn(manifest.name + ": userScripts API is unavailable.");
+        return;
+    }
     try {
-        chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
-        chrome.userScripts.unregister().then(function () {
-            chrome.userScripts.register([
-                {
-                    id: "app.js",
-                    allFrames: !0,
-                    matches: ["*://*/*"],
-                    world: "USER_SCRIPT",
-                    runAt: "document_start",
-                    js: [{ file: "common/app.js" }],
-                },
-                {
-                    id: "content.js",
-                    allFrames: !0,
-                    matches: ["*://*/*"],
-                    runAt: "document_idle",
-                    world: "USER_SCRIPT",
-                    js: [{ file: "content/content.js" }],
-                },
-            ]);
-        });
-    } catch(error) {
+        userScripts.configureWorld?.({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
+        Promise.resolve(userScripts.unregister())
+            .then(function () {
+                return userScripts.register([
+                    {
+                        id: "app.js",
+                        allFrames: !0,
+                        matches: ["*://*/*"],
+                        world: "USER_SCRIPT",
+                        runAt: "document_start",
+                        js: [{ file: "common/app.js" }],
+                    },
+                    {
+                        id: "content.js",
+                        allFrames: !0,
+                        matches: ["*://*/*"],
+                        runAt: "document_idle",
+                        world: "USER_SCRIPT",
+                        js: [{ file: "content/content.js" }],
+                    },
+                ]);
+            })
+            .catch(function (error) {
+                console.warn(manifest.name + ": userScripts registration failed", error);
+                chrome.runtime.openOptionsPage();
+            });
+    } catch (error) {
+        console.warn(manifest.name + ": userScripts configuration error", error);
         chrome.runtime.openOptionsPage();
     }
 }
 
-chrome.action.setTitle({ title: `${manifest.name} v${manifest.version}` });
-updatePrefs(null, registerContentScripts);
-chrome.runtime.onStartup.addListener(updatePrefs);
+extensionAction?.setTitle({ title: `${manifest.name} v${manifest.version}` });
+const runUpdatePrefs = userScripts ? () => updatePrefs(null, registerContentScripts) : () => updatePrefs();
+runUpdatePrefs();
+chrome.runtime.onStartup.addListener(runUpdatePrefs);
 chrome.runtime.onInstalled.addListener(function (e) {
     if (e.reason === "update") {
-        registerContentScripts();
+        if (userScripts) {
+            registerContentScripts();
+        } else {
+            runUpdatePrefs();
+        }
     } else if (e.reason === "install") {
         chrome.runtime.openOptionsPage();
     }
 });
 chrome.runtime.onMessage.addListener(onMessage);
-chrome.runtime.onUserScriptMessage.addListener(onMessage);
+if (chrome.runtime.onUserScriptMessage) {
+    chrome.runtime.onUserScriptMessage.addListener(onMessage);
+}
 
 keepAlive();

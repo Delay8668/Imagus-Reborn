@@ -5,6 +5,8 @@ var $ = function (id) {
     return document.getElementById(id);
 };
 
+const userScripts = chrome.userScripts || (typeof browser !== "undefined" ? browser.userScripts : null);
+
 const _ = function (msg) {
     try {
         return chrome.i18n.getMessage(msg) || msg;
@@ -636,8 +638,12 @@ document.addEventListener("keydown", function (e) {
 }, true);
 
 async function checkUserScripts() {
+    if (!userScripts?.getScripts) {
+        $("allow_user_scripts_message").style.display = "block";
+        return;
+    }
     try {
-        const scripts = await chrome.userScripts.getScripts();
+        const scripts = await userScripts.getScripts();
         if (scripts?.length > 0) {
             $("allow_dev_mode_message").innerHTML =
             $("allow_user_scripts_message").innerHTML = _("APP_READY").replace('"Imagus"', app.name);

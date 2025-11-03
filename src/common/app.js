@@ -98,19 +98,58 @@ const Port = {
     },
 
     send: async function (message) {
-        if (Port.listener) {
-            return chrome.runtime.sendMessage(message, Port.listener);
-        } else {
-            return chrome.runtime.sendMessage(message);
+        const browserRuntime = typeof browser !== "undefined" ? browser.runtime : null;
+        const runtimeSend = browserRuntime?.sendMessage?.bind(browserRuntime) || chrome.runtime.sendMessage.bind(chrome.runtime);
+
+        const invokeListener = (response) => {
+            if (typeof Port.listener === "function") {
+                try {
+                    Port.listener(response);
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        };
+
+        const handleResponse = (resolve, reject) => (response) => {
+            const runtimeError = chrome.runtime?.lastError;
+            if (runtimeError) {
+                reject(runtimeError);
+            } else {
+                if (Port.listener) {
+                    invokeListener(response);
+                }
+                resolve(response);
+            }
+        };
+
+        if (browserRuntime?.sendMessage) {
+            try {
+                const response = await browserRuntime.sendMessage(message);
+                if (Port.listener) {
+                    invokeListener(response);
+                }
+                return response;
+            } catch (error) {
+                throw error || chrome.runtime?.lastError;
+            }
         }
+
+        return new Promise((resolve, reject) => {
+            try {
+                runtimeSend(message, handleResponse(resolve, reject));
+            } catch (error) {
+                reject(error);
+            }
+        });
     },
 };
 
 async function readCfg() {
     let resp = await Port.send({ cmd: "cfg_get", keys: ["hz", "keys", "tls", "grants", "sieve"] });
 
-    if (!resp?.cfg) return;
-    cfg = resp.cfg;
+    cfg = resp?.cfg || {};
+    return cfg;
 }
 
 const shortcut = {
