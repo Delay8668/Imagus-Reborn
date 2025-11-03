@@ -1,94 +1,19 @@
 "use strict";
-(function (win, doc) {
-    if (!doc || doc instanceof win.HTMLDocument === false) return;
-    var imgDoc = doc.images && doc.images.length === 1 && doc.images[0];
-    if (imgDoc && imgDoc.parentNode === doc.body && imgDoc.src === win.location.href) return;
+(function (win) {
+    const context = win.__imagusContext;
+    if (!context) return;
 
-    const toggleFlipTransform = function (el, ori) {
-        if (!el.scale) el.scale = { h: 1, v: 1 };
-        el.scale[ori ? "h" : "v"] *= -1;
-        ori = el.scale.h !== 1 || el.scale.v !== 1 ? "scale(" + el.scale.h + "," + el.scale.v + ")" : "";
-        if (el.curdeg) ori += " rotate(" + el.curdeg + "deg)";
-        el.style.transform = ori;
-    };
-
-    const preventEvent = function (e, d, p) {
-        if (!e || !e.preventDefault || !e.stopPropagation) return;
-        if (d === undefined || d === true) e.preventDefault();
-        if (p !== false) e.stopImmediatePropagation();
-    };
-
-    const openImageInHosts = function (request) {
-        const candidateUrl = request?.url;
-        if (!candidateUrl || !/^https?:/i.test(candidateUrl)) {
-            console.warn("Imagus Reborn: blocked non-http(s) sendTo URL.", candidateUrl);
-            return;
-        }
-
-        const hosts = cfg?.tls?.sendToHosts || [];
-        if (!Array.isArray(hosts) || !hosts.length) {
-            console.warn("Imagus Reborn: no sendTo hosts configured.");
-            return;
-        }
-
-        const urls = [];
-        for (let index = 0; index < hosts.length; index += 1) {
-            const [hostMeta, hostTemplate] = hosts[index] || [];
-            if (!hostMeta || !hostTemplate) continue;
-            if (request.host === index || (request.host === undefined && hostMeta[0] === "+")) {
-                const safeUrl = hostTemplate.replace("%url", encodeURIComponent(candidateUrl)).replace("%raw_url", candidateUrl);
-                urls.push(safeUrl);
-            }
-        }
-
-        if (urls.length) {
-            Port.send({ cmd: "open", url: urls, nf: !!request?.nf });
-        }
-    };
-
-    const extractBackgroundImageUrls = function (imgs) {
-        if (imgs)
-            if (Array.isArray((imgs = imgs.match(/\burl\(([^'"\)][^\)]*|"[^"\\]+(?:\\.[^"\\]*)*|'[^'\\]+(?:\\.[^'\\]*)*)(?=['"]?\))/g)))) {
-                var i = imgs.length;
-                while (i--) imgs[i] = imgs[i].slice(/'|"/.test(imgs[i][4]) ? 5 : 4);
-                return imgs;
-            }
-        return null;
-    };
-
-    const extractMediaSource = function (node) {
-        var nname = node.nodeName.toUpperCase();
-        if (nname === "IMG" || node.type === "image" || nname === "EMBED") return node.src;
-        else if (nname === "CANVAS") return node.toDataURL();
-        else if (nname === "OBJECT" && node.data) return node.data;
-        else if (nname === "AREA") {
-            var img = doc.querySelector('img[usemap="#' + node.parentNode.name + '"]');
-            return img.src;
-        } else if (nname === "VIDEO") {
-            nname = doc.createElement("canvas");
-            nname.width = node.clientWidth;
-            nname.height = node.clientHeight;
-            nname.getContext("2d").drawImage(node, 0, 0, nname.width, nname.height);
-            return nname.toDataURL("image/jpeg");
-        } else if (node.poster) return node.poster;
-        return null;
-    };
-
-    let mouseDownStarted, viewportWidth, viewportHeight, topViewportWidth, topViewportHeight;
-    const hashFragmentRegex = /#(?![?!].).*/;
-    const svgExtensionRegex = /\.svgz?$/i;
-    const updateViewportDimensions = function (targetDoc) {
-        var d = targetDoc || doc;
-        d = (d.compatMode === "BackCompat" && d.body) || d.documentElement;
-        var w = d.clientWidth;
-        var h = d.clientHeight;
-        if (targetDoc) return { width: w, height: h };
-        if (w === viewportWidth && h === viewportHeight) return;
-        viewportWidth = w;
-        viewportHeight = h;
-        topViewportWidth = w;
-        topViewportHeight = h;
-    };
+    const { doc } = context;
+    const { helpers, state, constants } = context;
+    const {
+        toggleFlipTransform,
+        preventEvent,
+        openImageInHosts,
+        extractBackgroundImageUrls,
+        extractMediaSource,
+        updateViewportDimensions,
+    } = helpers;
+    const { hashFragmentRegex, svgExtensionRegex } = constants;
 
     const handleFreezeRelease = function (e) {
         if (typeof previewOverlay.freeze === "number") {
@@ -124,7 +49,7 @@
         }
         if (e.button === 0) {
             if (previewOverlay.fullZm) {
-                mouseDownStarted = true;
+                state.mouseDownStarted = true;
                 if (e.ctrlKey || previewOverlay.fullZm !== 2) return;
                 preventEvent(e);
                 previewOverlay.fullZm = 3;
@@ -151,7 +76,7 @@
             previewOverlay.keyup_freeze();
             previewOverlay.freeze = previewOverlay.freeze ? 1 : 0;
         }
-        mouseDownStarted = e.timeStamp;
+        state.mouseDownStarted = e.timeStamp;
         previewOverlay.md_x = e.clientX;
         previewOverlay.md_y = e.clientY;
 
@@ -161,8 +86,8 @@
     };
 
     const handleContextMenu = function (e) {
-        if (!mouseDownStarted || e.button !== 2 || previewOverlay.md_x !== e.clientX || previewOverlay.md_y !== e.clientY) {
-            if (mouseDownStarted) mouseDownStarted = null;
+        if (!state.mouseDownStarted || e.button !== 2 || previewOverlay.md_x !== e.clientX || previewOverlay.md_y !== e.clientY) {
+            if (state.mouseDownStarted) state.mouseDownStarted = null;
 
             if (
                 e.button === 2 &&
@@ -176,8 +101,8 @@
             return;
         }
 
-        const elapsed = e.timeStamp - mouseDownStarted >= 300;
-        mouseDownStarted = null;
+        const elapsed = e.timeStamp - state.mouseDownStarted >= 300;
+        state.mouseDownStarted = null;
 
         const shouldFullZoom = previewOverlay.state > 2 && ((elapsed && cfg.hz.fzOnPress === 2) || (!elapsed && !previewOverlay.fullZm && cfg.hz.fzOnPress === 1));
 
@@ -578,7 +503,7 @@
                     });
                 }
             /* commented out because that did not allow large images (bigger than viewport)
-            if (el.clientWidth > topViewportWidth * 0.7 && el.clientHeight > topViewportHeight * 0.7) return null; */
+            if (el.clientWidth > state.topViewportWidth * 0.7 && el.clientHeight > state.topViewportHeight * 0.7) return null; */
             imgs = { imgSRC_o: el.currentSrc || el.src || el.data || null };
             if (!imgs.imgSRC_o && el.localName === "image") {
                 imgs.imgSRC_o = el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
@@ -1079,8 +1004,8 @@
             }
             var x = previewOverlay.x;
             var y = previewOverlay.y;
-            var rSide = viewportWidth - x;
-            var bSide = viewportHeight - y;
+            var rSide = state.viewportWidth - x;
+            var bSide = state.viewportHeight - y;
             var left, top, rot, w, h, ratio;
             if ((msg === undefined && previewOverlay.state === 4) || msg === true) {
                 msg = false;
@@ -1114,8 +1039,8 @@
                     box = previewOverlay.TBOX;
                     x = box.left;
                     y = box.top;
-                    rSide = viewportWidth - box.right;
-                    bSide = viewportHeight - box.bottom;
+                    rSide = state.viewportWidth - box.right;
+                    bSide = state.viewportHeight - box.bottom;
                 }
                 box = previewOverlay.DBOX;
                 ratio = w / h;
@@ -1130,10 +1055,10 @@
                             : 0,
                     vH = box["wm"] + (rot ? box["hpb"] : box["wpb"]),
                     hH = box["hm"] + (rot ? box["wpb"] : box["hpb"]) + cap_size,
-                    vW = Math.min(w, (fs ? viewportWidth : x < rSide ? rSide : x) - vH),
-                    hW = Math.min(w, viewportWidth - vH);
-                vH = Math.min(h, viewportHeight - hH);
-                hH = Math.min(h, (fs ? viewportHeight : y < bSide ? bSide : y) - hH);
+                    vW = Math.min(w, (fs ? state.viewportWidth : x < rSide ? rSide : x) - vH),
+                    hW = Math.min(w, state.viewportWidth - vH);
+                vH = Math.min(h, state.viewportHeight - hH);
+                hH = Math.min(h, (fs ? state.viewportHeight : y < bSide ? bSide : y) - hH);
                 if ((fs = vW / ratio) > vH) vW = vH * ratio;
                 else vH = fs;
                 if ((fs = hH * ratio) > hW) hH = hW / ratio;
@@ -1151,21 +1076,21 @@
                 switch (cfg.hz.placement) {
                     case 1:
                         hH = (x < rSide ? rSide : x) < vW;
-                        if (hH && cfg.hz.fullspace && (viewportHeight - vH <= viewportWidth - vW || vW <= (x < rSide ? rSide : x))) hH = false;
+                        if (hH && cfg.hz.fullspace && (state.viewportHeight - vH <= state.viewportWidth - vW || vW <= (x < rSide ? rSide : x))) hH = false;
                         left = x - (hH ? vW / 2 : x < rSide ? 0 : vW);
                         top = y - (hH ? (y < bSide ? 0 : vH) : vH / 2);
                         break;
                     case 2:
-                        left = (viewportWidth - vW) / 2;
-                        top = (viewportHeight - vH) / 2;
+                        left = (state.viewportWidth - vW) / 2;
+                        top = (state.viewportHeight - vH) / 2;
                         hW = false;
                         break;
                     case 3:
-                        left = x < rSide || (vW >= previewOverlay.x && viewportWidth - previewOverlay.x >= vW) ? previewOverlay.TBOX.right : x - vW;
-                        top = y < bSide || (vH >= previewOverlay.y && viewportHeight - previewOverlay.y >= vH) ? previewOverlay.TBOX.bottom : y - vH;
+                        left = x < rSide || (vW >= previewOverlay.x && state.viewportWidth - previewOverlay.x >= vW) ? previewOverlay.TBOX.right : x - vW;
+                        top = y < bSide || (vH >= previewOverlay.y && state.viewportHeight - previewOverlay.y >= vH) ? previewOverlay.TBOX.bottom : y - vH;
                         hH =
                             (x < rSide ? rSide : x) < vW ||
-                            ((y < bSide ? bSide : y) >= vH && viewportWidth >= vW && (previewOverlay.TBOX.width >= viewportWidth / 2 || Math.abs(previewOverlay.x - left) >= viewportWidth / 3.5));
+                            ((y < bSide ? bSide : y) >= vH && state.viewportWidth >= vW && (previewOverlay.TBOX.width >= state.viewportWidth / 2 || Math.abs(previewOverlay.x - left) >= state.viewportWidth / 3.5));
                         if (!cfg.hz.fullspace || (hH ? vH <= (y < bSide ? bSide : y) : vW <= (x < rSide ? rSide : x))) {
                             fs = previewOverlay.TBOX.width / previewOverlay.TBOX.height;
                             if (hH) {
@@ -1188,7 +1113,7 @@
                         top = y - (y < bSide ? Math.max(0, vH - bSide) : vH);
                 }
                 if (hW)
-                    if (hH || (x < rSide ? rSide : x) < vW || viewportHeight < vH) {
+                    if (hH || (x < rSide ? rSide : x) < vW || state.viewportHeight < vH) {
                         hH = y < bSide ? box["mt"] : box["mb"];
                         if (hW > hH) {
                             hW -= hH;
@@ -1201,8 +1126,8 @@
                             left += x < rSide ? hW : -hW;
                         }
                     }
-                left = left < 0 ? 0 : left > viewportWidth - vW ? viewportWidth - vW : left;
-                top = top < 0 ? 0 : top > viewportHeight - vH ? viewportHeight - vH : top;
+                left = left < 0 ? 0 : left > state.viewportWidth - vW ? state.viewportWidth - vW : left;
+                top = top < 0 ? 0 : top > state.viewportHeight - vH ? state.viewportHeight - vH : top;
                 if (cap_size && !cfg.hz.capPos) top += cap_size;
                 if (rot) {
                     rot = w;
@@ -1513,7 +1438,7 @@
                 if (ow < 600 && oh < 600 && Math.abs(ow / 2 - (img.width || w)) < 8 && Math.abs(oh / 2 - (img.height || h)) < 8) return false;
             } else if (/^[^?#]+\.(?:gif|apng)(?:$|[?#])/.test(oImg.src)) return true;
             if ((w >= ow || h >= oh) && Math.abs(ow / oh - w / h) <= 0.2) return false;
-            return (w < topViewportWidth * 0.9 && 100 - (w * 100) / ow >= cfg.hz.zoomresized) || (h < topViewportHeight * 0.9 && 100 - (h * 100) / oh >= cfg.hz.zoomresized);
+            return (w < state.topViewportWidth * 0.9 && 100 - (w * 100) / ow >= cfg.hz.zoomresized) || (h < state.topViewportHeight * 0.9 && 100 - (h * 100) / oh >= cfg.hz.zoomresized);
         },
 
         not_enlargeable: function () {
@@ -1796,7 +1721,7 @@
                     }
                     if (e.shiftKey) cfg.hz.hiRes = !cfg.hz.hiRes;
                 } else if (key === "Esc")
-                    if (previewOverlay.CNT === previewOverlay.VID && (win.fullScreen || doc.fullscreenElement || (topViewportWidth === win.screen.width && topViewportHeight === win.screen.height)))
+                    if (previewOverlay.CNT === previewOverlay.VID && (win.fullScreen || doc.fullscreenElement || (state.topViewportWidth === win.screen.width && state.topViewportHeight === win.screen.height)))
                         pv = false;
                     else previewOverlay.reset(true);
                 else if (key === cfg.keys.hz_fullZm || key === "Enter")
@@ -1932,8 +1857,8 @@
 
         fzClickAct: function (e) {
             if (e.button !== 0) return;
-            if (mouseDownStarted === false) {
-                mouseDownStarted = null;
+            if (state.mouseDownStarted === false) {
+                state.mouseDownStarted = null;
                 preventEvent(e);
                 return;
             }
@@ -1983,7 +1908,7 @@
         },
 
         wheeler: function (e) {
-            if (e.clientX >= viewportWidth || e.clientY >= viewportHeight) return;
+            if (e.clientX >= state.viewportWidth || e.clientY >= state.viewportHeight) return;
             var d = cfg.hz.scrollDelay;
             if (previewOverlay.state > 2 && d >= 20)
                 if (e.timeStamp - (previewOverlay.lastScrollTime || 0) < d) d = null;
@@ -2025,19 +1950,19 @@
             updateViewportDimensions();
             if (rot) s.reverse();
             if (x === k.mFit)
-                if (viewportWidth / viewportHeight < s[0] / s[1]) x = viewportWidth > s[0] ? 0 : k.mFitW;
-                else x = viewportHeight > s[1] ? 0 : k.mFitH;
+                if (state.viewportWidth / state.viewportHeight < s[0] / s[1]) x = state.viewportWidth > s[0] ? 0 : k.mFitW;
+                else x = state.viewportHeight > s[1] ? 0 : k.mFitH;
             switch (x) {
                 case k.mFitW:
-                    viewportWidth -= previewOverlay.DBOX["wpb"];
-                    s[1] *= viewportWidth / s[0];
-                    s[0] = viewportWidth;
+                    state.viewportWidth -= previewOverlay.DBOX["wpb"];
+                    s[1] *= state.viewportWidth / s[0];
+                    s[0] = state.viewportWidth;
                     if (previewOverlay.fullZm > 1) previewOverlay.y = 0;
                     break;
                 case k.mFitH:
-                    viewportHeight -= previewOverlay.DBOX["hpb"];
-                    s[0] *= viewportHeight / s[1];
-                    s[1] = viewportHeight;
+                    state.viewportHeight -= previewOverlay.DBOX["hpb"];
+                    s[0] *= state.viewportHeight / s[1];
+                    s[1] = state.viewportHeight;
                     if (previewOverlay.fullZm > 1) previewOverlay.y = 0;
                     break;
                 case "+":
@@ -2237,7 +2162,7 @@
                     w,
                     h;
                 if (!e) e = {};
-                if (mouseDownStarted === true) mouseDownStarted = false;
+                if (state.mouseDownStarted === true) state.mouseDownStarted = false;
                 if (e.target) {
                     previewOverlay.x = e.clientX;
                     previewOverlay.y = e.clientY;
@@ -2271,8 +2196,8 @@
                         h = rot;
                         rot = (w - h) / 2;
                     } else rot = 0;
-                    x = (w - previewOverlay.DBOX["wpb"] > viewportWidth ? -((previewOverlay.x * (w - viewportWidth + 80)) / viewportWidth) + 40 : (viewportWidth - w) / 2) + rot - previewOverlay.DBOX["ml"];
-                    y = (h - previewOverlay.DBOX["hpb"] > viewportHeight ? -((previewOverlay.y * (h - viewportHeight + 80)) / viewportHeight) + 40 : (viewportHeight - h) / 2) - rot - previewOverlay.DBOX["mt"];
+                    x = (w - previewOverlay.DBOX["wpb"] > state.viewportWidth ? -((previewOverlay.x * (w - state.viewportWidth + 80)) / state.viewportWidth) + 40 : (state.viewportWidth - w) / 2) + rot - previewOverlay.DBOX["ml"];
+                    y = (h - previewOverlay.DBOX["hpb"] > state.viewportHeight ? -((previewOverlay.y * (h - state.viewportHeight + 80)) / state.viewportHeight) + 40 : (state.viewportHeight - h) / 2) - rot - previewOverlay.DBOX["mt"];
                 }
                 if (e[2] !== undefined) {
                     previewOverlay.BOX.style.width = e[2] + "px";
@@ -2693,12 +2618,15 @@
         },
     };
 
+    context.previewOverlay = previewOverlay;
     win.previewOverlay = previewOverlay;
     win.PVI = previewOverlay;
 
     window.addEventListener("mousemove", previewOverlay.onInitMouseMove, true);
     catchEvent.onmessage = previewOverlay.winOnMessage;
-})(window, document);
+})(window);
+
+
 
 
 

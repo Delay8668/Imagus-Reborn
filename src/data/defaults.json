@@ -1,78 +1,213 @@
 {
-	"hz": {
-		"deactivate": 1,
-		"actTrigger": "ctrl",
-		"delay": 300,
-		"delayOnIdle": true,
-		"zoomresized": 25,
-		"markOnHover": "dashed",
-		"preload": 0,
-		"placement": 0,
-		"fullspace": true,
-		"hiRes": true,
-		"hiResOnFZ": 3,
-		"thumbAsBG": false,
-		"thumbAsBGColor": "#c3c3c3",
-		"thumbAsBGOpacity": 0.3,
-		"hideIdleCursor": 500,
-		"history": true,
-		"mediaVolume": 40,
-		"scrollDelay": 0,
-		"pileWheel": 1,
-		"pileCycle": false,
-		"capStyle": 0,
-		"capPos": 0,
-		"capWrapByDef": true,
-		"capWH": false,
-		"capText": true,
-		"capLinkText": true,
-		"capFlashCount": 1,
-		"fzMode": 1,
-		"fzOnPress": 2,
-		"follow": true,
-		"move": true,
-		"waitHide": false,
-		"minPopupDistance": 20,
-		"css": "margin: 3px 3px 20px; background: #f8f8ff padding-box; border: 3px solid hsla(0,0%,95%,.6); border-radius: 2px; box-shadow: 0 0 2px #666",
-		"scOffInInput": true,
-		"LDRsrc": "",
-		"LDRcss": "",
-		"LDRdelay": 300,
-		"LDRbgOpacity": 100,
-		"LDRanimate": true
-	},
-	"tls": {
-		"advanced": false,
-		"sieveAutoUpdate": false,
-		"opzoom": true,
-		"sendToHosts": [
-			["+TinEye", "https://www.tineye.com/search?sort=size&order=desc&url=%url"],
-			["Google", "https://lens.google.com/uploadbyurl?url=%url"],
-			["Bing", "https://www.bing.com/images/searchbyimage?cbir=sbi&imgurl=%url"],
-			["Yandex", "https://yandex.com/images/search?rpt=imageview&url=%url"],
-			["ZXing QRCode", "https://zxing.org/w/decode?full=true&u=%url"],
-			["ImgOps", "https://imgops.com/%raw_url"]
-		]
-	},
-	"keys": {
-		"mOrig": "1",
-		"mFit": "2",
-		"mFitW": "3",
-		"mFitH": "4",
-		"rotL": "E",
-		"rotR": "R",
-		"flipH": "Q",
-		"flipV": "W",
-		"prefs": "P",
-		"send": "S",
-		"hz_toggle": "D",
-		"hz_preload": "L",
-		"hz_fullZm": "Z",
-		"hz_fullSpace": "F",
-		"hz_caption": "C",
-		"hz_open": "O",
-		"hz_history": "H"
-	},
-	"grants": [],
-	"sieveRepository": "https://raw.githubusercontent.com/kuzn123/Imagus-Sieve-RuBoard/master/update.txt"
+    "hz": {
+        "settingsCSS": "DARK_GRAY-TREBUCHET_MS",
+        "deactivate": 1,
+        "actTrigger": "m2",
+        "delay": 500,
+        "delayOnIdle": true,
+        "waitHide": true,
+        "markOnHover": "dashed",
+        "zoomresized": 9,
+        "preload": 2,
+        "hiRes": true,
+        "hiResOnFZ": 0,
+        "history": true,
+        "mediaVolume": 40,
+        "scrollDelay": 0,
+        "pileWheel": 1,
+        "pileCycle": true,
+        "capStyle": 0,
+        "capPos": 0,
+        "capWrapByDef": true,
+        "capText": true,
+        "capLinkText": true,
+        "capWH": true,
+        "capNoSBar": false,
+        "fzMode": 1,
+        "fzOnPress": 1,
+        "maxw": -1,
+        "maxh": -1,
+        "placement": 0,
+        "fullspace": true,
+        "move": true,
+        "follow": true,
+        "cssdim": 0,
+        "minPopupDistance": 20,
+        "hideIdleCursor": 500,
+        "thumbAsBG": true,
+        "thumbAsBGColor": "#c3c3c3",
+        "thumbAsBGOpacity": 0.3,
+        "css": "margin: 3px 3px 20px;\nbackground: #f8f8ff padding-box;\nborder: 3px solid hsla(0,0%,95%,.6);\nborder-radius: 2px;\nbox-shadow: 0 0 2px #666;",
+        "ext": "gif|jpe?g|png|svg|webp|mp4|webm|ogv|mov|mp3|ogg|wav|avif|apng|bmp|tiff|aac|flac|m4a|mid|opus|mkv|m4v",
+        "ext2": "{\n\t// images\n\t\"image/apng\": \"apng\",\n\t\"image/avif\": \"avif\",\n\t\"image/bmp\": \"bmp\",\n\t\"image/gif\": \"gif\",\n\t\"image/jpeg\": \"jpg\",\n\t\"image/png\": \"png\",\n\t\"image/svg+xml\": \"svg\",\n\t\"image/tiff\": \"tiff\",\n\t\"image/webp\": \"webp\",\n\n\t// audio\n\t\"audio/aac\": \"aac\",\n\t\"audio/midi\": \"mid\",\n\t\"audio/mpeg\": \"mp3\",\n\t\"audio/ogg\": \"ogg\",\n\t\"audio/opus\": \"opus\",\n\t\"audio/wav\": \"wav\",\n\t\"audio/webm\": \"webm\",\n\n\t// video\n\t\"video/mp4\": \"mp4\",\n\t\"video/mpeg\": \"mpeg\",\n\t\"video/ogg\": \"ogv\",\n\t\"video/webm\": \"webm\"\n}",
+        "ext3": "{\n\t\"img\": \"jpg\",\n\t\"video\": \"mp4\",\n\t\"audio\": \"mp3\"\n}",
+        "scOffInInput": true,
+        "numpad": false,
+        "save": false,
+        "sievekeepadv": true,
+        "capFlashCount": 1,
+        "LDRsrc": "",
+        "LDRcss": "",
+        "LDRdelay": 300,
+        "LDRbgOpacity": 100,
+        "LDRanimate": true,
+        "hz_ext": "gif|jpe?g|png|svg|webp|mp4|webm|ogv|mov|mp3|ogg|wav",
+        "hz_ext2": {
+            "image/apng": "apng",
+            "image/avif": "avif",
+            "image/bmp": "bmp",
+            "image/gif": "gif",
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/svg+xml": "svg",
+            "image/tiff": "tiff",
+            "image/webp": "webp",
+            "audio/aac": "aac",
+            "audio/midi": "mid",
+            "audio/mpeg": "mp3",
+            "audio/ogg": "ogg",
+            "audio/opus": "opus",
+            "audio/wav": "wav",
+            "audio/webm": "webm",
+            "video/mp4": "mp4",
+            "video/mpeg": "mpeg",
+            "video/ogg": "ogv",
+            "video/webm": "webm"
+        },
+        "hz_ext3": {
+            "img": "jpg",
+            "video": "mp4",
+            "audio": "mp3"
+        }
+    },
+    "keys": {
+        "del": "",
+        "hz_toggle": "Alt+Shift+D",
+        "hz_preload": "Alt+Shift+L",
+        "hz_fullZm": "Z",
+        "hz_fullZm2": "Enter",
+        "hz_fullSpace": "F",
+        "hz_caption": "C",
+        "hz_open": "O",
+        "hz_history": "H",
+        "hz_save": "Ctrl+S",
+        "hz_copy": "Ctrl+C",
+        "hz_reset": "Escape",
+        "hz_zoomin": "Equal(Add)",
+        "hz_zoomout": "Minus",
+        "hz_grants": "G",
+        "hz_switchres": "Tab",
+        "prefs": "P",
+        "flipH": "Q",
+        "flipV": "W",
+        "rotL": "E",
+        "rotR": "R",
+        "mOrig": "1",
+        "mFit": "2",
+        "mFitW": "3",
+        "mFitH": "4",
+        "send": "S",
+        "fw1": "Space",
+        "fw2": "ArrowRight",
+        "fw3": "PageDown",
+        "back1": "Shift+Space",
+        "back2": "ArrowLeft",
+        "back3": "PageUp",
+        "start": "Home",
+        "end": "End",
+        "jump": "Shift+End",
+        "pl": "Space",
+        "controls": "Shift+Space",
+        "vb": "Ctrl+ArrowLeft",
+        "vfw": "Ctrl+ArrowRight",
+        "up": "ArrowUp",
+        "down": "ArrowDown",
+        "stepup": "PageUp",
+        "stepdown": "PageDown"
+    },
+    "tls": {
+        "advanced": true,
+        "sendToHosts": [
+            [
+                "+TinEye",
+                "https://www.tineye.com/search?sort=size&order=desc&url=%url"
+            ],
+            [
+                "Google",
+                "https://www.google.com/searchbyimage?sbisrc=cr_1_5_2&image_url=%url"
+            ],
+            [
+                "Google lens",
+                "https://lens.google.com/uploadbyurl?url=%url"
+            ],
+            [
+                "Bing",
+                "https://www.bing.com/images/searchbyimage?cbir=sbi&imgurl=%url"
+            ],
+            [
+                "Yandex",
+                "https://yandex.com/images/search?rpt=imageview&url=%url"
+            ],
+            [
+                "KarmaDecay",
+                "http://karmadecay.com/%url"
+            ],
+            [
+                "ZXing QRCode",
+                "https://zxing.org/w/decode?full=true&u=%url"
+            ],
+            [
+                "ImgOps",
+                "https://imgops.com/%raw_url"
+            ]
+        ],
+        "opzoom": true,
+        "sieveAutoUpdate": true
+    },
+    "grants": [
+        {
+            "op": "!",
+            "url": "tuwel.tuwien.ac.at"
+        },
+        {
+            "op": "!",
+            "url": "chatgpt.com"
+        },
+        {
+            "op": "!",
+            "url": "academy.hackthebox.com"
+        },
+        {
+            "op": "!",
+            "url": "vnc.htb-cloud.com"
+        },
+        {
+            "op": "!",
+            "url": "3c-bap.gmx.net"
+        },
+        {
+            "op": "!",
+            "url": "outlook.office.com"
+        },
+        {
+            "op": "!",
+            "url": "fav-hentai.com"
+        },
+        {
+            "op": "!",
+            "url": "www.zamg.ac.at"
+        },
+        {
+            "op": "!",
+            "url": "kisskh.co"
+        },
+        {
+            "op": "!",
+            "url": "192.168.0.201"
+        },
+        {
+            "op": "!",
+            "url": "192.168.0.73"
+        }
+    ]
 }

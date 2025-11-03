@@ -568,15 +568,18 @@ function registerContentScripts() {
                         runAt: "document_start",
                         js: [{ file: "common/app.js" }],
                     },
-                    {
-                        id: "content.js",
-                        allFrames: !0,
-                        matches: ["*://*/*"],
-                        runAt: "document_idle",
-                        world: "USER_SCRIPT",
-                        js: [{ file: "content/content.js" }],
-                    },
-                ]);
+                {
+                    id: "content.js",
+                    allFrames: !0,
+                    matches: ["*://*/*"],
+                    runAt: "document_idle",
+                    world: "USER_SCRIPT",
+                    js: [
+                        { file: "content/content-context.js" },
+                        { file: "content/previewOverlay.js" }
+                    ],
+                },
+            ]);
             })
             .catch(function (error) {
                 console.warn(manifest.name + ": userScripts registration failed", error);
